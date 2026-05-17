@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, Pretendard, ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --background: 34 52% 96%;
+  --foreground: 25 35% 15%;
+  --card: 34 60% 98%;
+  --card-foreground: 25 35% 15%;
+  --popover: 34 60% 98%;
+  --popover-foreground: 25 35% 15%;
+  --primary: 29 44% 32%;
+  --primary-foreground: 34 60% 98%;
+  --secondary: 41 73% 63%;
+  --secondary-foreground: 25 35% 15%;
+  --muted: 33 34% 88%;
+  --muted-foreground: 24 15% 36%;
+  --accent: 18 58% 54%;
+  --accent-foreground: 34 60% 98%;
+  --destructive: 0 58% 48%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 30 33% 78%;
+  --input: 30 33% 78%;
+  --ring: 29 44% 32%;
+  --radius: 0.5rem;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at top left, hsl(31 44% 68% / 0.36), transparent 28rem),
+    radial-gradient(circle at top right, hsl(41 73% 74% / 0.28), transparent 24rem),
+    radial-gradient(circle at bottom center, hsl(18 58% 56% / 0.18), transparent 30rem);
+  content: "";
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
