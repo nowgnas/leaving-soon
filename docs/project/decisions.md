@@ -233,3 +233,32 @@ Fastify provides a focused API server without adding frontend concerns, and Zod 
 ### Impact
 
 The server now has typed source files, a test runner, and a build step. Report storage remains in memory for release1.
+
+---
+
+## ADR-008: Persist reports in Supabase Postgres and clean stale rows with scheduled jobs
+
+- Date: 2026-05-17
+- Status: accepted
+
+### Context
+
+The MVP needs recent seat reports to survive server restarts, but stale reports should not accumulate forever.
+
+### Decision
+
+Store seat reports in Supabase Postgres when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured. Keep visitor-facing queries limited to active reports, and delete expired rows after a 24-hour retention window using a scheduled cleanup job.
+
+### Reason
+
+Supabase gives the project a low-cost durable database without changing the client API shape. A timed cleanup job keeps the table small while preserving recently expired data long enough for operational safety.
+
+### Alternatives Considered
+
+- Keep in-memory storage
+- Use another managed SQL database
+- Delete expired rows immediately with no retention window
+
+### Impact
+
+The server now depends on Supabase for production persistence. Local development still works without Supabase credentials by falling back to memory. Cleanup jobs can run through Supabase Cron or another scheduler that calls the cleanup endpoint.

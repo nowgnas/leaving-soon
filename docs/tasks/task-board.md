@@ -49,3 +49,5 @@
 | T-018 | Restore visitor summary lookup on cafe click | bugfix | P2 | DONE | Codex | `/client/src/App.tsx` | Visitor mode now fetches cafe reports again |
 | T-019 | Return no-report message for empty cafe summaries | bugfix | P2 | DONE | Codex | `/server/src/domain.ts`, `/server/test/domain.test.ts` | Empty report sets now respond with a clear "아직 제보된 정보가 없어요" message |
 | T-020 | Initialize local git repository and commit snapshot | chore | P3 | DONE | Codex | `/AGENTS.md`, `/docs/*`, `/client`, `/server` | Git repository initialized at project root and current work committed |
+| T-021 | Plan Supabase persistence and cleanup rollout | docs | P2 | DONE | Codex | `/docs/plans/2026-05-17-supabase-persistence-cleanup.md` | Implementation plan written for storage persistence and cleanup |
+| T-022 | Implement Supabase persistence and cleanup | feature | P1 | DONE | Codex | `/server`, `/docs` | Persist reports in Postgres and remove stale rows with a scheduled cleanup job |

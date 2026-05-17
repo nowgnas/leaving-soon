@@ -33,7 +33,7 @@ The project will not focus on:
 
 ## Current Status
 
-Release1 MVP implemented as a Vite React TypeScript client with shadcn/ui components and a Fastify TypeScript API server with in-memory report storage.
+Release1 MVP implemented as a Vite React TypeScript client with shadcn/ui components and a Fastify TypeScript API server. Cafe reports now persist in Supabase Postgres when configured, while local development can still fall back to in-memory storage.
 
 ## Project Structure
 

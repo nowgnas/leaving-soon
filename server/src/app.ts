@@ -1,10 +1,11 @@
 import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
-import { createSeatReport, getActiveReports } from "./domain.js";
+import { buildCleanupCutoff } from "./cleanup.js";
+import { createSeatReport } from "./domain.js";
 import { searchNaverCafes } from "./naver.js";
 import { summarizeCafeReportsWithGemini } from "./summary.js";
-import type { SeatReport } from "./types.js";
+import { createReportStore } from "./repository.js";
 
 type ReportParams = {
   cafeId: string;
@@ -14,7 +15,12 @@ export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: false,
   });
-  const reportsByCafe = new Map<string, SeatReport[]>();
+  const reportStore = createReportStore(
+    {
+      url: process.env.SUPABASE_URL,
+      serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    },
+  );
 
   void app.register(cors, {
     origin: true,
@@ -55,8 +61,7 @@ export function buildApp(): FastifyInstance {
 
   app.get<{ Params: ReportParams }>("/api/cafes/:cafeId/reports", async (request) => {
     const cafeId = request.params.cafeId;
-    const reports = reportsByCafe.get(cafeId) ?? [];
-    const activeReports = getActiveReports(reports);
+    const activeReports = await reportStore.listActiveReports(cafeId);
 
     return {
       cafeId,
@@ -68,10 +73,8 @@ export function buildApp(): FastifyInstance {
   app.post<{ Params: ReportParams; Body: unknown }>("/api/cafes/:cafeId/reports", async (request, reply) => {
     try {
       const cafeId = request.params.cafeId;
-      const reports = reportsByCafe.get(cafeId) ?? [];
       const report = createSeatReport(cafeId, request.body as never);
-      const updatedReports = [report, ...reports];
-      reportsByCafe.set(cafeId, updatedReports);
+      await reportStore.saveReport(report);
 
       return reply.code(201).send({
         report,
@@ -88,6 +91,28 @@ export function buildApp(): FastifyInstance {
 
       throw error;
     }
+  });
+
+  app.post("/api/internal/cleanup/reports", async (request, reply) => {
+    const expectedSecret = process.env.CLEANUP_SECRET;
+    const providedSecret = request.headers["x-cleanup-secret"];
+
+    if (expectedSecret && providedSecret !== expectedSecret) {
+      return reply.code(403).send({
+        error: {
+          code: "FORBIDDEN",
+          message: "invalid cleanup secret",
+        },
+      });
+    }
+
+    const cutoff = buildCleanupCutoff();
+    const deleted = await reportStore.deleteExpiredReports(cutoff);
+
+    return {
+      deleted,
+      cutoff: cutoff.toISOString(),
+    };
   });
 
   return app;

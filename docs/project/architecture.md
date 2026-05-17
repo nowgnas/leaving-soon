@@ -5,7 +5,8 @@
 ```text
 client  ->  server  ->  Naver Local Search API
 client  ->  server  ->  Gemini API
-client  ->  server  ->  in-memory report store
+client  ->  server  ->  Supabase Postgres report store
+client  ->  server  ->  Supabase Cron cleanup job
 ```
 
 ## Client
@@ -49,10 +50,12 @@ Release1 uses a Fastify TypeScript API server:
 - `src/domain.ts`: report validation, active-report filtering, and summary generation
 - `src/summary.ts`: Gemini AI summary generation with rule-based fallback
 - `src/app.ts`: Fastify API routing
+- `src/repository.ts`: Supabase-backed report persistence with memory fallback for local development
+- `src/cleanup.ts`: cleanup cutoff helper for stale report deletion
 - `src/naver.ts`: Naver Local Search API client and cafe result normalization
 - `src/server.ts`: local server entrypoint
 - `src/types.ts`: shared server domain types
-- In-memory report storage only
+- Supabase Postgres report storage in deployment, in-memory fallback when Supabase env vars are missing
 
 ## API Flow
 
@@ -85,7 +88,7 @@ Release1 does not include authentication or authorization.
 
 1. Reporter selects a Naver cafe result or sample cafe.
 2. Reporter submits leaving-soon details to the server.
-3. Server validates and stores the report in memory.
+3. Server validates and stores the report in Supabase Postgres, or in memory when Supabase env vars are missing.
 4. Server generates a Gemini AI summary for active reports when possible.
 5. Visitor selects the same cafe and receives active reports plus a summary.
 
@@ -93,12 +96,17 @@ Release1 does not include authentication or authorization.
 
 - Naver Local Search API for cafe place search.
 - Gemini API `generateContent` for cafe report summaries.
+- Supabase Postgres for durable report storage.
+- Supabase Cron for stale-report cleanup.
 
 ## Important Technical Constraints
 
-- Release1 report data is volatile and resets when the Node process restarts.
+- Release1 report data is durable in Supabase when configured, but local development can still fall back to memory.
+- Stale reports are deleted after the retention window by a scheduled cleanup job.
 - Naver place search requires `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` on the server.
 - Gemini summaries require `GEMINI_API_KEY` on the server.
+- Supabase persistence requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` on the server.
+- Cleanup endpoints use `CLEANUP_SECRET` when configured.
 - Local Naver credentials should be stored in `/server/.env`, which is excluded from git.
 - Client and server require dependency installation and build steps.
 - During development, the Vite client proxies `/api` requests to `http://127.0.0.1:3000`.
