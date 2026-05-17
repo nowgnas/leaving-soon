@@ -48,3 +48,4 @@
 | T-017 | Confirm report registration response shape | docs | P3 | DONE | Codex | `/docs/logs/2026-05.md` | Verified POST returns only report without summary |
 | T-018 | Restore visitor summary lookup on cafe click | bugfix | P2 | DONE | Codex | `/client/src/App.tsx` | Visitor mode now fetches cafe reports again |
 | T-019 | Return no-report message for empty cafe summaries | bugfix | P2 | DONE | Codex | `/server/src/domain.ts`, `/server/test/domain.test.ts` | Empty report sets now respond with a clear "아직 제보된 정보가 없어요" message |
+| T-020 | Initialize local git repository and commit snapshot | chore | P3 | DONE | Codex | `/AGENTS.md`, `/docs/*`, `/client`, `/server` | Git repository initialized at project root and current work committed |
