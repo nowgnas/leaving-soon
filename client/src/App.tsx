@@ -122,6 +122,7 @@ export default function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [seatSpace, setSeatSpace] = useState<SeatSpace>("normal");
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("normal");
+  const [hasSubmittedReport, setHasSubmittedReport] = useState(false);
 
   const title = mode === "reporter" ? "내 자리 제보하기" : "갈 카페 찾기";
   const modeLabel = mode === "reporter" ? "곧 나가요" : "카페 갈래요";
@@ -133,6 +134,7 @@ export default function App() {
   async function selectCafe(cafe: Cafe) {
     setSelectedCafe(cafe);
     setMessage("");
+    setHasSubmittedReport(false);
     if (mode === "visitor") {
       try {
         setReportData(await fetchCafeReports(cafe.id));
@@ -157,6 +159,7 @@ export default function App() {
       setCafes(results.length > 0 ? results : fallbackCafes);
       setSelectedCafe(null);
       setReportData(null);
+      setHasSubmittedReport(false);
       setSearchMessage(results.length > 0 ? `${results.length}곳을 찾았습니다.` : "검색 결과가 없어 샘플 카페를 보여줍니다.");
     } catch (error) {
       const filtered = fallbackCafes.filter((cafe) => {
@@ -170,6 +173,7 @@ export default function App() {
       setCafes(filtered.length > 0 ? filtered : fallbackCafes);
       setSelectedCafe(null);
       setReportData(null);
+      setHasSubmittedReport(false);
       setSearchMessage(error instanceof Error ? error.message : "네이버 카페 검색을 사용할 수 없어 샘플 카페를 보여줍니다.");
     } finally {
       setIsSearching(false);
@@ -210,7 +214,8 @@ export default function App() {
     event.currentTarget.reset();
     setSeatSpace("normal");
     setCrowdLevel("normal");
-    setMessage("제보가 등록되었습니다.");
+    setHasSubmittedReport(true);
+    setMessage("곧 나가요가 등록되었습니다.");
   }
 
   if (mode === "landing") {
@@ -417,7 +422,19 @@ export default function App() {
                 </>
               ) : null}
 
-              {mode === "reporter" && selectedCafe ? (
+              {mode === "reporter" && selectedCafe && hasSubmittedReport ? (
+                <div className="rounded-lg border border-forest-100 bg-forest-50 px-4 py-4">
+                  <div className="flex items-center gap-2 text-sm font-black text-forest-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    곧 나가요가 등록되었습니다.
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-stone-500">
+                    자리 제보가 저장되었습니다. 다른 사람이 이 카페를 조회할 때 최근 제보로 표시됩니다.
+                  </p>
+                </div>
+              ) : null}
+
+              {mode === "reporter" && selectedCafe && !hasSubmittedReport ? (
                 <form className="grid gap-4" onSubmit={submitReport}>
                   <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
                     <p className="text-sm font-black text-coffee-900">자리 상태를 알려주세요</p>
@@ -477,7 +494,7 @@ export default function App() {
                     <Textarea className="min-h-24 bg-white" id="note" name="note" maxLength={160} placeholder="예: 창가 2인석, 의자가 편해요" />
                   </div>
 
-                  <Button className="h-12 bg-coffee-900 text-white hover:bg-coffee-700" type="submit">제보 등록</Button>
+                  <Button className="h-12 bg-coffee-900 text-white hover:bg-coffee-700" type="submit">곧 나가요</Button>
                 </form>
               ) : null}
 
