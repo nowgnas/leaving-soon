@@ -46,7 +46,7 @@ export function normalizeNaverLocalItems(items: NaverLocalItem[]): CafePlace[] {
     const y = item.mapy || "";
 
     return {
-      id: `naver-${x}-${y}-${name}`,
+      id: `naver-${x}-${y}`,
       platform: "naver",
       place_name: name,
       address_name: stripHtml(item.address || ""),

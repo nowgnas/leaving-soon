@@ -30,7 +30,7 @@ describe("naver local search normalization", () => {
 
     expect(places).toEqual([
       {
-        id: "naver-1270123456-375123456-성수 브루잉 카페",
+        id: "naver-1270123456-375123456",
         platform: "naver",
         place_name: "성수 브루잉 카페",
         address_name: "서울 성동구 성수동",

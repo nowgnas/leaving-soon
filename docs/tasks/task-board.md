@@ -56,4 +56,5 @@
 | T-025 | Refresh mobile-first service design | refactor | P1 | DONE | Codex | `/client`, `/docs/plans/2026-05-18-service-design-refresh-design.md` | Redesign implemented as mobile-app simplicity with warm cafe brand expression |
 | T-026 | Remove landing helper info and adjust palette | refactor | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Removed confusing landing helper blocks and shifted palette away from coffee/amber tones |
 | T-027 | Simplify landing action buttons | refactor | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Removed redundant action labels while keeping landing cards clearly clickable |
-| T-028 | Prepare and push deployment candidate | infra | P1 | IN_PROGRESS | Codex | `/client`, `/server`, `/docs/logs/2026-05.md` | Verify release candidate and push latest main branch for platform deployment |
+| T-028 | Prepare and push deployment candidate | infra | P1 | BLOCKED | Codex | `/client`, `/server`, `/docs/logs/2026-05.md` | Pushed latest main branch; platform auto-deploy connection or Cloudflare token still required |
+| T-029 | Remove cafe name from Naver cafe IDs | bugfix | P1 | DONE | Codex | `/server/src/naver.ts`, `/server/test/naver.test.ts` | Avoid Korean cafe names in URL/path/storage IDs for report lookup stability |
