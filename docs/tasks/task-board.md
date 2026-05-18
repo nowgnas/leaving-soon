@@ -62,3 +62,4 @@
 | T-031 | Hide reporter form after successful report | refactor | P1 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Changed submit button text and show completion state after report submission |
 | T-032 | Push reporter success UI deployment candidate | infra | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Verified and pushed reporter success UI change; platform deployment record not yet observed |
 | T-033 | Add visitor summary freshness hint | refactor | P2 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Show how recent the summary reports are in visitor mode |
+| T-034 | Design in-service reward system | docs | P1 | DONE | Codex | `/docs/plans/2026-05-19-reward-system-design.md` | Designed non-paid reward loop with location-based report verification |
