@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+
 type Mode = "landing" | "visitor" | "reporter";
 type SeatSpace = "wide" | "normal" | "narrow";
 type CrowdLevel = "relaxed" | "normal" | "busy";
@@ -76,7 +78,7 @@ function getCafeAddress(cafe: Cafe) {
 }
 
 async function fetchCafeReports(cafeId: string): Promise<ReportResponse> {
-  const response = await fetch(`/api/cafes/${encodeURIComponent(cafeId)}/reports`);
+  const response = await fetch(`${API_BASE}/api/cafes/${encodeURIComponent(cafeId)}/reports`);
 
   if (!response.ok) {
     throw new Error("제보를 불러오지 못했습니다.");
@@ -86,7 +88,7 @@ async function fetchCafeReports(cafeId: string): Promise<ReportResponse> {
 }
 
 async function fetchCafeSearch(query: string): Promise<Cafe[]> {
-  const response = await fetch(`/api/cafes/search?query=${encodeURIComponent(query)}`);
+  const response = await fetch(`${API_BASE}/api/cafes/search?query=${encodeURIComponent(query)}`);
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
@@ -170,7 +172,7 @@ export default function App() {
     }
 
     const formData = new FormData(event.currentTarget);
-    const response = await fetch(`/api/cafes/${encodeURIComponent(selectedCafe.id)}/reports`, {
+    const response = await fetch(`${API_BASE}/api/cafes/${encodeURIComponent(selectedCafe.id)}/reports`, {
       method: "POST",
       headers: {
         "content-type": "application/json",

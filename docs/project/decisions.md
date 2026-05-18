@@ -262,3 +262,32 @@ Supabase gives the project a low-cost durable database without changing the clie
 ### Impact
 
 The server now depends on Supabase for production persistence. Local development still works without Supabase credentials by falling back to memory. Cleanup jobs can run through Supabase Cron or another scheduler that calls the cleanup endpoint.
+
+---
+
+## ADR-009: Deploy the client on Cloudflare Pages, the server on Render Free, and the database on Supabase Free
+
+- Date: 2026-05-17
+- Status: accepted
+
+### Context
+
+The application needs a low-cost deployment path that keeps the current Vite client and Fastify server mostly unchanged.
+
+### Decision
+
+Deploy the static client to Cloudflare Pages, the Node server to Render Free, and the persistent report database to Supabase Free. Run stale-report cleanup through Supabase Cron or a scheduled HTTP call to the cleanup endpoint.
+
+### Reason
+
+Cloudflare Pages serves the built client cheaply, Render Free can host the existing Node server without a rewrite, and Supabase provides durable storage with a free tier that is sufficient for the MVP. This keeps implementation effort low and preserves the current stack.
+
+### Alternatives Considered
+
+- Cloudflare Pages + Cloudflare Workers + D1
+- Vercel + Render + Supabase
+- Render only with a custom database host
+
+### Impact
+
+The client must know the deployed API base URL, and the server must be configured with Supabase and cleanup secrets in production. Render Free may spin down or suspend under its free-tier rules, so cold starts are possible.
