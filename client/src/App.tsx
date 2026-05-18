@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock3, Coffee, MapPin, Plug, Search, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, Coffee, MapPin, Plug, Search, Sparkles, Users } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,18 @@ const fallbackCafes: Cafe[] = [
 
 function getCafeAddress(cafe: Cafe) {
   return cafe.road_address_name || cafe.address_name || "주소 정보 없음";
+}
+
+function getSeatSpaceLabel(seatSpace: SeatSpace) {
+  if (seatSpace === "wide") {
+    return "넓은 자리";
+  }
+
+  if (seatSpace === "narrow") {
+    return "좁은 자리";
+  }
+
+  return "보통 자리";
 }
 
 async function fetchCafeReports(cafeId: string): Promise<ReportResponse> {
@@ -203,48 +215,69 @@ export default function App() {
 
   if (mode === "landing") {
     return (
-      <main className="min-h-dvh overflow-hidden bg-[linear-gradient(150deg,#fff7d6_0%,#fffdf6_43%,#d9f7ec_100%)] px-4 py-5 text-foreground sm:px-6 md:px-10">
-        <section className="mx-auto grid min-h-[calc(100dvh-2.5rem)] max-w-6xl content-between gap-6 py-4 md:content-center md:gap-8">
-          <div className="max-w-3xl pt-4 md:pt-0">
-            <Badge className="mb-4 bg-[#2f7d68] text-white hover:bg-[#2f7d68]">자리 한 잔 나왔습니다</Badge>
-            <h1 className="whitespace-nowrap text-[3.6rem] font-black leading-[0.9] tracking-normal text-[#2c2118] min-[380px]:text-[4.2rem] sm:text-8xl md:text-9xl">
-              곧나가요
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5d4b3a] sm:text-lg md:text-xl">
-              카페에 가기 전, 곧 비는 자리가 있는지 짧은 제보로 확인하세요.
-            </p>
-          </div>
+      <main className="min-h-dvh px-4 py-5 text-foreground sm:px-6">
+        <section className="mx-auto grid min-h-[calc(100dvh-2.5rem)] w-full max-w-md content-center gap-7 sm:max-w-2xl">
+          <div className="grid gap-6">
+            <header className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-coffee-900 text-white shadow-sm">
+                  <Coffee className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-coffee-900">곧나가요</p>
+                  <p className="text-xs text-stone-500">카페 자리 제보</p>
+                </div>
+              </div>
+            </header>
 
-          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-            <Card className="border-[#f0cf61] bg-white/90 shadow-lg shadow-[#f4c430]/15">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-2xl text-[#2c2118]">
-                  <Coffee className="h-6 w-6 text-[#d88716]" />
-                  카페 갈래요
-                </CardTitle>
-                <CardDescription>지금 갈 만한 카페와 곧 비는 자리를 확인합니다.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="h-12 w-full bg-[#f4c430] text-[#2c2118] hover:bg-[#eab308]" size="lg" onClick={() => setMode("visitor")}>
-                  진입하기
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="grid gap-3">
+              <h1 className="text-4xl font-black leading-none text-coffee-900 sm:text-5xl">
+                곧 비는 자리,
+                <br />
+                가기 전에 확인하세요
+              </h1>
+              <p className="max-w-lg text-base leading-7 text-stone-500">
+                카페에 있는 사람이 남긴 짧은 제보로 지금 갈 만한 곳을 빠르게 고릅니다.
+              </p>
+            </div>
 
-            <Card className="border-[#8fdcc7] bg-white/90 shadow-lg shadow-[#2f7d68]/10">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-2xl text-[#173f35]">
-                  <Users className="h-6 w-6 text-[#2f7d68]" />
-                  곧 나가요
-                </CardTitle>
-                <CardDescription>내가 앉은 자리 정보를 짧게 남깁니다.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="h-12 w-full bg-[#2f7d68] text-white hover:bg-[#256b58]" size="lg" onClick={() => setMode("reporter")}>
-                  제보하기
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="grid gap-3">
+              <button
+                className="group grid gap-4 rounded-lg border border-forest-100 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-forest-600/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest-600"
+                onClick={() => setMode("visitor")}
+              >
+                <span className="flex items-center justify-between gap-4">
+                  <span className="grid gap-1">
+                    <span className="flex items-center gap-2 text-lg font-black text-coffee-900">
+                      <Search className="h-5 w-5 text-forest-600" />
+                      카페 갈래요
+                    </span>
+                    <span className="text-sm leading-6 text-stone-500">검색하고 곧 비는 자리와 콘센트 제보를 확인합니다.</span>
+                  </span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-forest-50 text-forest-700 transition group-hover:bg-forest-600 group-hover:text-white">
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </span>
+              </button>
+
+              <button
+                className="group grid gap-4 rounded-lg border border-honey-100 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-honey-500/45 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-honey-500"
+                onClick={() => setMode("reporter")}
+              >
+                <span className="flex items-center justify-between gap-4">
+                  <span className="grid gap-1">
+                    <span className="flex items-center gap-2 text-lg font-black text-coffee-900">
+                      <Users className="h-5 w-5 text-honey-600" />
+                      곧 나가요
+                    </span>
+                    <span className="text-sm leading-6 text-stone-500">내가 앉은 자리를 곧 찾을 사람에게 짧게 알려줍니다.</span>
+                  </span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-honey-50 text-honey-600 transition group-hover:bg-honey-500 group-hover:text-white">
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </span>
+              </button>
+            </div>
           </div>
         </section>
       </main>
@@ -252,143 +285,174 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-dvh bg-[linear-gradient(180deg,#fff8dd_0%,#fffdf6_46%,#eefaf5_100%)] px-3 py-4 text-foreground sm:px-5 md:px-8">
-      <section className="mx-auto grid max-w-7xl gap-4 md:gap-5">
-        <header className="sticky top-0 z-20 -mx-3 flex items-center gap-3 border-b border-[#efd991] bg-[#fff8dd]/90 px-3 py-3 backdrop-blur sm:-mx-5 sm:px-5 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0">
-          <Button className="shrink-0 border-[#d9be55] bg-white/80" variant="outline" onClick={() => setMode("landing")}>
+    <main className="min-h-dvh px-4 py-4 text-foreground sm:px-6 md:px-8">
+      <section className="mx-auto grid max-w-6xl gap-4">
+        <header className="sticky top-0 z-10 -mx-4 flex items-center gap-3 border-b border-paper-100 bg-paper-50/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0">
+          <Button className="border-paper-100 bg-white text-coffee-900 hover:bg-paper-100" variant="outline" size="icon" onClick={() => setMode("landing")}>
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">처음으로</span>
           </Button>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-[#2f7d68] sm:text-sm">{modeLabel}</p>
-            <h2 className="truncate text-2xl font-black tracking-normal text-[#2c2118] sm:text-3xl">{title}</h2>
+            <p className="text-xs font-bold text-forest-700">{modeLabel}</p>
+            <h2 className="truncate text-2xl font-black text-coffee-900 sm:text-3xl">{title}</h2>
           </div>
         </header>
 
-        <Card className="border-[#efd991] bg-white/90 shadow-md shadow-[#f4c430]/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <MapPin className="h-5 w-5 text-[#d88716]" />
-              카페 검색
-            </CardTitle>
-            <CardDescription>네이버 지역 검색 API로 카페를 찾습니다. 서버 키가 없으면 샘플 카페로 체험합니다.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-              <Input
-                className="h-12 bg-white text-base"
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    void searchCafes();
-                  }
-                }}
-                placeholder="예: 성수 작업하기 좋은 카페"
-                type="search"
-              />
-              <Button className="h-12 bg-[#f4c430] text-[#2c2118] hover:bg-[#eab308]" onClick={() => void searchCafes()}>
-                <Search className="h-4 w-4" />
-                {isSearching ? "검색 중" : "검색"}
-              </Button>
+        <section className="rounded-lg border border-paper-100 bg-white/85 p-3 shadow-sm sm:p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-md bg-honey-50 text-honey-600">
+              <Search className="h-4 w-4" />
+            </span>
+            <div>
+              <h3 className="text-base font-black text-coffee-900">카페 검색</h3>
+              <p className="text-xs text-stone-500">네이버 지역 검색 결과를 불러옵니다.</p>
             </div>
-            {searchMessage ? (
-              <p className="mt-3 rounded-md border border-[#cde9df] bg-[#f4fffb] px-3 py-2 text-sm text-[#173f35]">
-                {searchMessage}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+            <Input
+              className="h-12 bg-white text-base"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void searchCafes();
+                }
+              }}
+              placeholder="예: 성수 작업하기 좋은 카페"
+              type="search"
+            />
+            <Button className="h-12 bg-forest-600 px-5 text-white hover:bg-forest-700" onClick={() => void searchCafes()} disabled={isSearching}>
+              {isSearching ? "검색 중" : "검색"}
+            </Button>
+          </div>
+          {searchMessage ? (
+            <p className="mt-3 rounded-md border border-forest-100 bg-forest-50 px-3 py-2 text-sm text-forest-700">{searchMessage}</p>
+          ) : null}
+        </section>
 
-        <div className="grid gap-4 lg:grid-cols-[390px_1fr]">
-          <Card className="border-[#cde9df] bg-white/90">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-xl">카페 목록</CardTitle>
-                <Badge className="bg-[#2f7d68] text-white hover:bg-[#2f7d68]">{cafes.length}곳</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="grid max-h-none gap-2 lg:max-h-[calc(100dvh-15rem)] lg:overflow-auto">
+        <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
+          <section className="rounded-lg border border-paper-100 bg-white/85 shadow-sm">
+            <div className="flex items-center justify-between border-b border-paper-100 px-4 py-3">
+              <h3 className="text-base font-black text-coffee-900">카페 목록</h3>
+              <Badge className="bg-coffee-900 text-white hover:bg-coffee-900">{cafes.length}곳</Badge>
+            </div>
+            <div className="grid gap-2 p-3 lg:max-h-[calc(100dvh-16rem)] lg:overflow-auto">
               {cafes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+                <p className="px-1 py-6 text-center text-sm text-stone-500">검색 결과가 없습니다.</p>
               ) : (
                 cafes.map((cafe) => (
-                  <Button
+                  <button
                     key={cafe.id}
-                    className={
+                    aria-pressed={selectedCafe?.id === cafe.id}
+                    className={`grid gap-1 rounded-lg border px-3 py-3 text-left transition ${
                       selectedCafe?.id === cafe.id
-                        ? "h-auto justify-start whitespace-normal border-[#2f7d68] bg-[#e1f6ef] px-4 py-3 text-left text-[#173f35] hover:bg-[#d4f0e7]"
-                        : "h-auto justify-start whitespace-normal border-[#ead9b0] bg-white px-4 py-3 text-left hover:bg-[#fff7db]"
-                    }
-                    variant="outline"
+                        ? "border-forest-600 bg-forest-50 shadow-sm"
+                        : "border-transparent bg-white hover:border-paper-100 hover:bg-paper-50"
+                    }`}
                     onClick={() => void selectCafe(cafe)}
                   >
-                    <span>
-                      <span className="block font-semibold">{cafe.place_name}</span>
-                      <span className="block text-xs text-muted-foreground">{getCafeAddress(cafe)}</span>
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold text-coffee-900">{cafe.place_name}</span>
+                        <span className="mt-1 flex items-start gap-1 text-xs leading-5 text-stone-500">
+                          <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                          <span>{getCafeAddress(cafe)}</span>
+                        </span>
+                      </span>
+                      {selectedCafe?.id === cafe.id ? <CheckCircle2 className="h-4 w-4 shrink-0 text-forest-600" /> : null}
                     </span>
-                  </Button>
+                  </button>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-        <Card className="border-[#efd991] bg-white/95">
-          <CardHeader>
-            <CardTitle className="text-xl text-[#2c2118] sm:text-2xl">
-              {selectedCafe ? selectedCafe.place_name : "카페를 선택하세요"}
-            </CardTitle>
-            <CardDescription>
-              {selectedCafe
-                ? selectedAddress
-                : mode === "reporter"
-                  ? "선택한 카페에 제보를 남길 수 있습니다."
-                  : "선택한 카페의 최근 제보와 요약을 볼 수 있습니다."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-5">
-            {message ? <p className="rounded-md border border-[#8fdcc7] bg-[#e1f6ef] px-4 py-3 text-sm text-[#173f35]">{message}</p> : null}
-            {mode === "visitor" && reportData ? (
-              <div className="rounded-md border border-[#f0cf61] bg-[#fff4c7] px-4 py-3 text-sm leading-6 text-[#4b351c]">
-                <div className="mb-1 flex items-center gap-2 font-bold">
-                  <Sparkles className="h-4 w-4" />
-                  자리 요약
-                </div>
-                {reportData.summary.message}
-              </div>
-            ) : null}
+          <section className="rounded-lg border border-paper-100 bg-white/90 shadow-sm">
+            <div className="border-b border-paper-100 px-4 py-4">
+              <p className="text-xs font-bold text-forest-700">{selectedCafe ? "선택한 카페" : "대기 중"}</p>
+              <h3 className="mt-1 text-xl font-black text-coffee-900">
+                {selectedCafe ? selectedCafe.place_name : "카페를 선택하세요"}
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-stone-500">
+                {selectedCafe
+                  ? selectedAddress
+                  : mode === "reporter"
+                    ? "검색 결과에서 제보할 카페를 선택하면 입력 폼이 열립니다."
+                    : "검색 결과에서 카페를 선택하면 최근 자리 제보를 볼 수 있습니다."}
+              </p>
+            </div>
 
-            {mode === "reporter" && selectedCafe ? (
-              <form className="grid gap-4 rounded-xl border border-[#c9a77a] bg-[linear-gradient(180deg,#fff9f0_0%,#f8efe0_100%)] p-4 shadow-sm shadow-[#c9a77a]/10" onSubmit={submitReport}>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="leavingInMinutes">몇 분 뒤 나가나요?</Label>
-                    <Input className="bg-white/95" id="leavingInMinutes" name="leavingInMinutes" type="number" min={1} max={180} defaultValue={20} required />
+            <div className="grid gap-4 p-4">
+              {message ? (
+                <p className="rounded-md border border-forest-100 bg-forest-50 px-3 py-2 text-sm text-forest-700">{message}</p>
+              ) : null}
+
+              {mode === "visitor" && reportData ? (
+                <>
+                  <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
+                    <div className="mb-1 flex items-center gap-2 text-sm font-black text-coffee-900">
+                      <Sparkles className="h-4 w-4 text-honey-600" />
+                      자리 요약
+                    </div>
+                    <p className="text-sm leading-6 text-coffee-700">{reportData.summary.message}</p>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="seatCount">몇 인석인가요?</Label>
-                    <Input className="bg-white/95" id="seatCount" name="seatCount" type="number" min={1} max={8} defaultValue={2} required />
+
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="rounded-lg border border-paper-100 bg-white px-3 py-3">
+                      <p className="text-xs text-stone-500">최근 제보</p>
+                      <p className="mt-1 text-lg font-black text-coffee-900">{reportData.summary.activeCount}건</p>
+                    </div>
+                    <div className="rounded-lg border border-paper-100 bg-white px-3 py-3">
+                      <p className="text-xs text-stone-500">곧 비는 자리</p>
+                      <p className="mt-1 text-lg font-black text-forest-700">{reportData.summary.leavingSoonCount}건</p>
+                    </div>
+                    <div className="rounded-lg border border-paper-100 bg-white px-3 py-3">
+                      <p className="text-xs text-stone-500">콘센트 좌석</p>
+                      <p className="mt-1 text-lg font-black text-coffee-900">{reportData.summary.outletSeatCount}석</p>
+                    </div>
+                    <div className="rounded-lg border border-paper-100 bg-white px-3 py-3">
+                      <p className="text-xs text-stone-500">웨이팅</p>
+                      <p className="mt-1 text-lg font-black text-coffee-900">{reportData.summary.hasWaiting ? "있음" : "없음"}</p>
+                    </div>
                   </div>
-                  <div className="grid gap-2">
-                    <Label>자리 넓이</Label>
-                    <Select value={seatSpace} onValueChange={(value) => setSeatSpace(value as SeatSpace)}>
-                      <SelectTrigger className="bg-white/95 border-[#c9a77a]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
+                </>
+              ) : null}
+
+              {mode === "reporter" && selectedCafe ? (
+                <form className="grid gap-4" onSubmit={submitReport}>
+                  <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
+                    <p className="text-sm font-black text-coffee-900">자리 상태를 알려주세요</p>
+                    <p className="mt-1 text-xs leading-5 text-stone-500">정확한 좌석 번호보다, 몇 분 뒤 어떤 자리가 비는지가 더 중요합니다.</p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="leavingInMinutes">몇 분 뒤 나가나요?</Label>
+                      <Input className="h-11 bg-white" id="leavingInMinutes" name="leavingInMinutes" type="number" min={1} max={180} defaultValue={20} required />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="seatCount">몇 인석인가요?</Label>
+                      <Input className="h-11 bg-white" id="seatCount" name="seatCount" type="number" min={1} max={8} defaultValue={2} required />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label>자리 넓이</Label>
+                      <Select value={seatSpace} onValueChange={(value) => setSeatSpace(value as SeatSpace)}>
+                        <SelectTrigger className="h-11 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
                           <SelectItem value="wide">넓음</SelectItem>
                           <SelectItem value="normal">보통</SelectItem>
                           <SelectItem value="narrow">좁음</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  <div className="grid gap-2">
-                    <Label>현재 분위기</Label>
-                    <Select value={crowdLevel} onValueChange={(value) => setCrowdLevel(value as CrowdLevel)}>
-                      <SelectTrigger className="bg-white/95 border-[#c9a77a]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
+                    <div className="grid gap-1.5">
+                      <Label>현재 분위기</Label>
+                      <Select value={crowdLevel} onValueChange={(value) => setCrowdLevel(value as CrowdLevel)}>
+                        <SelectTrigger className="h-11 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
                           <SelectItem value="relaxed">여유</SelectItem>
                           <SelectItem value="normal">보통</SelectItem>
                           <SelectItem value="busy">혼잡</SelectItem>
@@ -397,61 +461,61 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <Label className="flex items-center gap-2">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
                       <input name="hasOutlet" type="checkbox" />
                       콘센트 있음
                     </Label>
-                    <Label className="flex items-center gap-2">
+                    <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
                       <input name="hasWaiting" type="checkbox" />
                       웨이팅 있음
                     </Label>
                   </div>
 
-                  <div className="grid gap-2">
+                  <div className="grid gap-1.5">
                     <Label htmlFor="note">추가 메모</Label>
-                    <Textarea className="bg-white/95" id="note" name="note" maxLength={160} placeholder="예: 창가 2인석, 의자가 편해요" />
+                    <Textarea className="min-h-24 bg-white" id="note" name="note" maxLength={160} placeholder="예: 창가 2인석, 의자가 편해요" />
                   </div>
 
-                  <Button className="h-11 bg-[#6f4e37] text-white hover:bg-[#5e4031]" type="submit">제보 등록</Button>
+                  <Button className="h-12 bg-coffee-900 text-white hover:bg-coffee-700" type="submit">제보 등록</Button>
                 </form>
               ) : null}
 
               {mode === "visitor" ? (
                 <div className="grid gap-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">최근 제보</h3>
-                    <Badge className="bg-[#f4c430] text-[#2c2118] hover:bg-[#f4c430]">{reportData?.reports.length ?? 0}건</Badge>
+                    <h3 className="text-base font-black text-coffee-900">최근 제보</h3>
+                    <Badge className="bg-honey-500 text-coffee-900 hover:bg-honey-500">{reportData?.reports.length ?? 0}건</Badge>
                   </div>
                   {!reportData || reportData.reports.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">아직 최근 제보가 없습니다.</p>
+                    <p className="rounded-lg border border-paper-100 bg-paper-50 px-4 py-6 text-center text-sm text-stone-500">아직 최근 제보가 없습니다.</p>
                   ) : (
                     reportData.reports.map((report) => (
-                      <Card key={report.id} className="border-[#ead9b0] bg-[#fffdf8]">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="flex items-center gap-2 text-base">
-                            <Clock3 className="h-4 w-4 text-[#d88716]" />
-                            {report.leavingInMinutes}분 뒤 {report.seatCount}인석이 비어요
-                          </CardTitle>
-                          <CardDescription>{report.note || "추가 메모 없음"}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-2">
-                          <Badge className="bg-[#e1f6ef] text-[#173f35] hover:bg-[#e1f6ef]">{report.seatSpace === "wide" ? "넓은 자리" : report.seatSpace === "narrow" ? "좁은 자리" : "보통 자리"}</Badge>
+                      <div key={report.id} className="rounded-lg border border-paper-100 bg-white px-3 py-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-coffee-900">
+                          <Clock3 className="h-4 w-4 text-honey-600" />
+                          {report.leavingInMinutes}분 뒤 {report.seatCount}인석이 비어요
+                        </div>
+                        {report.note ? (
+                          <p className="mt-1 text-sm leading-6 text-stone-500">{report.note}</p>
+                        ) : null}
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <Badge variant="secondary">{getSeatSpaceLabel(report.seatSpace)}</Badge>
                           {report.hasOutlet ? (
-                            <Badge className="bg-[#6f4e37] text-white hover:bg-[#6f4e37]">
+                            <Badge className="border-forest-100 bg-forest-50 text-forest-700 hover:bg-forest-50">
                               <Plug className="mr-1 h-3 w-3" />
                               콘센트
                             </Badge>
                           ) : null}
                           {report.hasWaiting ? <Badge variant="destructive">웨이팅</Badge> : null}
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     ))
                   )}
                 </div>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </div>
       </section>
     </main>

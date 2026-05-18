@@ -52,3 +52,8 @@
 | T-021 | Plan Supabase persistence and cleanup rollout | docs | P2 | DONE | Codex | `/docs/plans/2026-05-17-supabase-persistence-cleanup.md` | Implementation plan written for storage persistence and cleanup |
 | T-022 | Implement Supabase persistence and cleanup | feature | P1 | DONE | Codex | `/server`, `/docs` | Persist reports in Postgres and remove stale rows with a scheduled cleanup job |
 | T-023 | Summarize deployment strategy and prerequisites | docs | P2 | DONE | Codex | `/docs/project/decisions.md`, `/docs/project/architecture.md`, `/docs/project/overview.md`, `/server/README.md` | Recommended Cloudflare Pages + Render Free + Supabase Free deployment path documented |
+| T-024 | Stop local dev servers on ports 5173 and 4173 | chore | P3 | DONE | Codex | `/docs/logs/2026-05.md` | Stopped PID 96241 on 5173; verified no listeners on 5173 or 4173 |
+| T-025 | Refresh mobile-first service design | refactor | P1 | DONE | Codex | `/client`, `/docs/plans/2026-05-18-service-design-refresh-design.md` | Redesign implemented as mobile-app simplicity with warm cafe brand expression |
+| T-026 | Remove landing helper info and adjust palette | refactor | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Removed confusing landing helper blocks and shifted palette away from coffee/amber tones |
+| T-027 | Simplify landing action buttons | refactor | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Removed redundant action labels while keeping landing cards clearly clickable |
+| T-028 | Prepare and push deployment candidate | infra | P1 | IN_PROGRESS | Codex | `/client`, `/server`, `/docs/logs/2026-05.md` | Verify release candidate and push latest main branch for platform deployment |

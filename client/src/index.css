@@ -2,28 +2,42 @@
 
 @theme {
   --font-sans: Inter, Pretendard, ui-sans-serif, system-ui, sans-serif;
+  --color-paper-50: #f7fbff;
+  --color-paper-100: #e8eef8;
+  --color-stone-500: #64748b;
+  --color-coffee-700: #243b64;
+  --color-coffee-900: #0f172a;
+  --color-forest-50: #e9fbf7;
+  --color-forest-100: #c8f3eb;
+  --color-forest-600: #0d9488;
+  --color-forest-700: #0f766e;
+  --color-honey-50: #fff1f0;
+  --color-honey-100: #ffd8d3;
+  --color-honey-500: #ff6b5f;
+  --color-honey-600: #e64e42;
+  --color-rose-500: #e5484d;
 }
 
 :root {
-  --background: 34 52% 96%;
-  --foreground: 25 35% 15%;
-  --card: 34 60% 98%;
-  --card-foreground: 25 35% 15%;
-  --popover: 34 60% 98%;
-  --popover-foreground: 25 35% 15%;
-  --primary: 29 44% 32%;
-  --primary-foreground: 34 60% 98%;
-  --secondary: 41 73% 63%;
-  --secondary-foreground: 25 35% 15%;
-  --muted: 33 34% 88%;
-  --muted-foreground: 24 15% 36%;
-  --accent: 18 58% 54%;
-  --accent-foreground: 34 60% 98%;
-  --destructive: 0 58% 48%;
+  --background: 207 100% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 175 84% 32%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 216 38% 94%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 214 32% 93%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 4 100% 69%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 65% 57%;
   --destructive-foreground: 0 0% 98%;
-  --border: 30 33% 78%;
-  --input: 30 33% 78%;
-  --ring: 29 44% 32%;
+  --border: 214 32% 88%;
+  --input: 214 32% 88%;
+  --ring: 175 84% 32%;
   --radius: 0.5rem;
 }
 
@@ -31,19 +45,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
-body::before {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
   background:
-    radial-gradient(circle at top left, hsl(31 44% 68% / 0.36), transparent 28rem),
-    radial-gradient(circle at top right, hsl(41 73% 74% / 0.28), transparent 24rem),
-    radial-gradient(circle at bottom center, hsl(18 58% 56% / 0.18), transparent 30rem);
-  content: "";
+    linear-gradient(180deg, hsl(204 100% 99%) 0%, hsl(210 54% 96%) 52%, hsl(171 58% 95%) 100%);
+  color: hsl(var(--foreground));
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
