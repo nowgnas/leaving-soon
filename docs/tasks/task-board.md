@@ -63,3 +63,4 @@
 | T-032 | Push reporter success UI deployment candidate | infra | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Verified and pushed reporter success UI change; platform deployment record not yet observed |
 | T-033 | Add visitor summary freshness hint | refactor | P2 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Show how recent the summary reports are in visitor mode |
 | T-034 | Design in-service reward system | docs | P1 | DONE | Codex | `/docs/plans/2026-05-19-reward-system-design.md` | Designed non-paid reward loop with location-based report verification |
+| T-035 | Show distinct active cafes in visitor list | feature | P1 | DONE | Codex | `/server`, `/client`, `/docs/plans/2026-05-19-active-cafe-list-plan.md` | Visitor list shows unique cafes with current reports, or an empty-state message when none are active |

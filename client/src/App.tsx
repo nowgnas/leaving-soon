@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, Clock3, Coffee, MapPin, Plug, Search, Sparkles, Users } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,15 @@ type Cafe = {
   road_address_name?: string;
   phone?: string;
   category?: string;
+  activeCount?: number;
+  latestCreatedAt?: string;
+};
+
+type ActiveCafeSummary = {
+  cafeId: string;
+  cafeName: string;
+  activeCount: number;
+  latestCreatedAt: string;
 };
 
 type SeatReport = {
@@ -49,6 +58,10 @@ type ReportResponse = {
     hasWaiting: boolean;
     message: string;
   };
+};
+
+type ActiveCafeResponse = {
+  cafes: ActiveCafeSummary[];
 };
 
 const fallbackCafes: Cafe[] = [
@@ -128,6 +141,22 @@ async function fetchCafeSearch(query: string): Promise<Cafe[]> {
   return payload.items;
 }
 
+async function fetchActiveCafes(): Promise<Cafe[]> {
+  const response = await fetch(`${API_BASE}/api/cafes/active`);
+
+  if (!response.ok) {
+    throw new Error("현재 제보된 카페를 불러오지 못했습니다.");
+  }
+
+  const payload = (await response.json()) as ActiveCafeResponse;
+  return payload.cafes.map((cafe) => ({
+    id: cafe.cafeId,
+    place_name: cafe.cafeName,
+    activeCount: cafe.activeCount,
+    latestCreatedAt: cafe.latestCreatedAt,
+  }));
+}
+
 export default function App() {
   const [mode, setMode] = useState<Mode>("landing");
   const [keyword, setKeyword] = useState("");
@@ -136,7 +165,9 @@ export default function App() {
   const [reportData, setReportData] = useState<ReportResponse | null>(null);
   const [message, setMessage] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
+  const [listMessage, setListMessage] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingActiveCafes, setIsLoadingActiveCafes] = useState(false);
   const [seatSpace, setSeatSpace] = useState<SeatSpace>("normal");
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("normal");
   const [hasSubmittedReport, setHasSubmittedReport] = useState(false);
@@ -147,6 +178,38 @@ export default function App() {
   const selectedAddress = useMemo(() => {
     return selectedCafe ? getCafeAddress(selectedCafe) : "";
   }, [selectedCafe]);
+
+  useEffect(() => {
+    if (mode !== "visitor") {
+      return;
+    }
+
+    async function loadActiveCafeList() {
+      setIsLoadingActiveCafes(true);
+      setListMessage("");
+      setSearchMessage("");
+      setMessage("");
+
+      try {
+        const activeCafes = await fetchActiveCafes();
+        setCafes(activeCafes);
+        setSelectedCafe(null);
+        setReportData(null);
+        setHasSubmittedReport(false);
+        setListMessage(activeCafes.length === 0 ? "등록된 제보가 없어요." : "");
+      } catch (error) {
+        setCafes([]);
+        setSelectedCafe(null);
+        setReportData(null);
+        setHasSubmittedReport(false);
+        setListMessage(error instanceof Error ? error.message : "현재 제보된 카페를 불러오지 못했습니다.");
+      } finally {
+        setIsLoadingActiveCafes(false);
+      }
+    }
+
+    void loadActiveCafeList();
+  }, [mode]);
 
   async function selectCafe(cafe: Cafe) {
     setSelectedCafe(cafe);
@@ -177,6 +240,7 @@ export default function App() {
       setSelectedCafe(null);
       setReportData(null);
       setHasSubmittedReport(false);
+      setListMessage("");
       setSearchMessage(results.length > 0 ? `${results.length}곳을 찾았습니다.` : "검색 결과가 없어 샘플 카페를 보여줍니다.");
     } catch (error) {
       const filtered = fallbackCafes.filter((cafe) => {
@@ -191,6 +255,7 @@ export default function App() {
       setSelectedCafe(null);
       setReportData(null);
       setHasSubmittedReport(false);
+      setListMessage("");
       setSearchMessage(error instanceof Error ? error.message : "네이버 카페 검색을 사용할 수 없어 샘플 카페를 보여줍니다.");
     } finally {
       setIsSearching(false);
@@ -354,12 +419,14 @@ export default function App() {
         <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
           <section className="rounded-lg border border-paper-100 bg-white/85 shadow-sm">
             <div className="flex items-center justify-between border-b border-paper-100 px-4 py-3">
-              <h3 className="text-base font-black text-coffee-900">카페 목록</h3>
+              <h3 className="text-base font-black text-coffee-900">현재 제보된 카페</h3>
               <Badge className="bg-coffee-900 text-white hover:bg-coffee-900">{cafes.length}곳</Badge>
             </div>
             <div className="grid gap-2 p-3 lg:max-h-[calc(100dvh-16rem)] lg:overflow-auto">
-              {cafes.length === 0 ? (
-                <p className="px-1 py-6 text-center text-sm text-stone-500">검색 결과가 없습니다.</p>
+              {isLoadingActiveCafes ? (
+                <p className="px-1 py-6 text-center text-sm text-stone-500">현재 제보된 카페를 불러오는 중입니다.</p>
+              ) : cafes.length === 0 ? (
+                <p className="px-1 py-6 text-center text-sm text-stone-500">{listMessage || "등록된 제보가 없어요."}</p>
               ) : (
                 cafes.map((cafe) => (
                   <button
@@ -375,10 +442,17 @@ export default function App() {
                     <span className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-bold text-coffee-900">{cafe.place_name}</span>
-                        <span className="mt-1 flex items-start gap-1 text-xs leading-5 text-stone-500">
-                          <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                          <span>{getCafeAddress(cafe)}</span>
-                        </span>
+                        {typeof cafe.activeCount === "number" ? (
+                          <span className="mt-1 flex items-center gap-1 text-xs leading-5 text-forest-700">
+                            <Sparkles className="h-3 w-3 shrink-0" />
+                            <span>활성 제보 {cafe.activeCount}건</span>
+                          </span>
+                        ) : (
+                          <span className="mt-1 flex items-start gap-1 text-xs leading-5 text-stone-500">
+                            <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+                            <span>{getCafeAddress(cafe)}</span>
+                          </span>
+                        )}
                       </span>
                       {selectedCafe?.id === cafe.id ? <CheckCircle2 className="h-4 w-4 shrink-0 text-forest-600" /> : null}
                     </span>

@@ -7,6 +7,54 @@ describe("report routes", () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   });
 
+  it("lists distinct active cafes", async () => {
+    const app = buildApp();
+    await app.ready();
+
+    await app.inject({
+      method: "POST",
+      url: "/api/cafes/cafe-1/reports",
+      payload: {
+        cafeName: "테스트 카페",
+        leavingInMinutes: 20,
+        seatCount: 2,
+      },
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/api/cafes/cafe-1/reports",
+      payload: {
+        cafeName: "테스트 카페",
+        leavingInMinutes: 25,
+        seatCount: 2,
+      },
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/api/cafes/cafe-2/reports",
+      payload: {
+        cafeName: "다른 카페",
+        leavingInMinutes: 10,
+        seatCount: 4,
+      },
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/cafes/active",
+    });
+
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().cafes).toHaveLength(2);
+    expect(response.json().cafes[0].cafeId).toBe("cafe-1");
+    expect(response.json().cafes[0].activeCount).toBe(2);
+    expect(response.json().cafes[1].cafeId).toBe("cafe-2");
+  });
+
   it("normalizes legacy Naver cafe IDs before saving reports", async () => {
     const app = buildApp();
     await app.ready();

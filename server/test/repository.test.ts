@@ -27,6 +27,45 @@ describe("report repository", () => {
     expect(active).toEqual([report]);
   });
 
+  it("lists distinct active cafes in memory", async () => {
+    const store = createReportStore();
+    const secondReport = {
+      ...report,
+      id: "report-2",
+      cafeId: "cafe-2",
+      cafeName: "다른 카페",
+      createdAt: "2026-05-17T01:05:00.000Z",
+      expiresAt: "2026-05-17T01:55:00.000Z",
+    };
+    const duplicateReport = {
+      ...report,
+      id: "report-3",
+      createdAt: "2026-05-17T01:06:00.000Z",
+      expiresAt: "2026-05-17T01:56:00.000Z",
+    };
+
+    await store.saveReport(report);
+    await store.saveReport(duplicateReport);
+    await store.saveReport(secondReport);
+
+    const cafes = await store.listActiveCafes(new Date("2026-05-17T01:10:00.000Z"));
+
+    expect(cafes).toEqual([
+      {
+        cafeId: "cafe-1",
+        cafeName: "테스트 카페",
+        activeCount: 2,
+        latestCreatedAt: "2026-05-17T01:06:00.000Z",
+      },
+      {
+        cafeId: "cafe-2",
+        cafeName: "다른 카페",
+        activeCount: 1,
+        latestCreatedAt: "2026-05-17T01:05:00.000Z",
+      },
+    ]);
+  });
+
   it("deletes expired reports while keeping recent ones", async () => {
     const store = createReportStore();
     const oldReport = {

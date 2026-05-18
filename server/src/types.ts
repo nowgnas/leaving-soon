@@ -16,6 +16,13 @@ export type SeatReport = {
   expiresAt: string;
 };
 
+export type ActiveCafeSummary = {
+  cafeId: string;
+  cafeName: string;
+  activeCount: number;
+  latestCreatedAt: string;
+};
+
 export type CafeReportSummary = {
   activeCount: number;
   leavingSoonCount: number;

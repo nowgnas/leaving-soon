@@ -1,5 +1,5 @@
 import { getActiveReports } from "./domain.js";
-import type { SeatReport } from "./types.js";
+import type { ActiveCafeSummary, SeatReport } from "./types.js";
 
 type ReportRow = {
   id: string;
@@ -19,6 +19,7 @@ type ReportRow = {
 type ReportStore = {
   saveReport(report: SeatReport): Promise<void>;
   listActiveReports(cafeId: string, now?: Date): Promise<SeatReport[]>;
+  listActiveCafes(now?: Date): Promise<ActiveCafeSummary[]>;
   deleteExpiredReports(cutoff: Date): Promise<number>;
 };
 
@@ -59,6 +60,50 @@ function fromRow(row: ReportRow): SeatReport {
     createdAt: row.created_at,
     expiresAt: row.expires_at,
   };
+}
+
+function summarizeActiveCafes(reports: SeatReport[], now = new Date()): ActiveCafeSummary[] {
+  const activeReports = getActiveReports(reports, now);
+  const cafes = new Map<string, ActiveCafeSummary>();
+
+  for (const report of activeReports) {
+    const existing = cafes.get(report.cafeId);
+
+    if (!existing) {
+      cafes.set(report.cafeId, {
+        cafeId: report.cafeId,
+        cafeName: report.cafeName,
+        activeCount: 1,
+        latestCreatedAt: report.createdAt,
+      });
+      continue;
+    }
+
+    const latestCreatedAt =
+      new Date(report.createdAt).getTime() > new Date(existing.latestCreatedAt).getTime()
+        ? report.createdAt
+        : existing.latestCreatedAt;
+
+    cafes.set(report.cafeId, {
+      cafeId: report.cafeId,
+      cafeName: new Date(report.createdAt).getTime() > new Date(existing.latestCreatedAt).getTime() ? report.cafeName : existing.cafeName,
+      activeCount: existing.activeCount + 1,
+      latestCreatedAt,
+    });
+  }
+
+  return Array.from(cafes.values()).sort((left, right) => {
+    if (right.activeCount !== left.activeCount) {
+      return right.activeCount - left.activeCount;
+    }
+
+    const latestDiff = new Date(right.latestCreatedAt).getTime() - new Date(left.latestCreatedAt).getTime();
+    if (latestDiff !== 0) {
+      return latestDiff;
+    }
+
+    return left.cafeName.localeCompare(right.cafeName, "ko");
+  });
 }
 
 function createSupabaseHeaders(serviceRoleKey: string): HeadersInit {
@@ -108,6 +153,24 @@ function createSupabaseReportStore(
       const payload = (await response.json()) as ReportRow[];
       return payload.map(fromRow);
     },
+    async listActiveCafes(now = new Date()) {
+      const url = new URL(`${baseUrl}/rest/v1/seat_reports`);
+      url.searchParams.set("select", "*");
+      url.searchParams.set("expires_at", `gt.${now.toISOString()}`);
+      url.searchParams.set("order", "created_at.desc");
+
+      const response = await fetchImpl(url, {
+        method: "GET",
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load active cafes: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as ReportRow[];
+      return summarizeActiveCafes(payload.map(fromRow), now);
+    },
     async deleteExpiredReports(cutoff: Date) {
       const url = new URL(`${baseUrl}/rest/v1/seat_reports`);
       url.searchParams.set("expires_at", `lt.${cutoff.toISOString()}`);
@@ -148,6 +211,10 @@ function createMemoryReportStore(): ReportStore {
       const reports = reportsByCafe.get(cafeId) ?? [];
       return getActiveReports(reports, now);
     },
+    async listActiveCafes(now = new Date()) {
+      const allReports = Array.from(reportsByCafe.values()).flat();
+      return summarizeActiveCafes(allReports, now);
+    },
     async deleteExpiredReports(cutoff: Date) {
       let deleted = 0;
 
@@ -176,4 +243,3 @@ export function createReportStore(
 
   return createMemoryReportStore();
 }
-

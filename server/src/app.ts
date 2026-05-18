@@ -11,6 +11,15 @@ type ReportParams = {
   cafeId: string;
 };
 
+type ActiveCafeResponse = {
+  cafes: Array<{
+    cafeId: string;
+    cafeName: string;
+    activeCount: number;
+    latestCreatedAt: string;
+  }>;
+};
+
 function normalizeCafeId(cafeId: string): string {
   const naverIdMatch = /^naver-([^-]+)-([^-]+)/.exec(cafeId);
 
@@ -67,6 +76,14 @@ export function buildApp(): FastifyInstance {
         },
       });
     }
+  });
+
+  app.get("/api/cafes/active", async (): Promise<ActiveCafeResponse> => {
+    const cafes = await reportStore.listActiveCafes();
+
+    return {
+      cafes,
+    };
   });
 
   app.get<{ Params: ReportParams }>("/api/cafes/:cafeId/reports", async (request) => {

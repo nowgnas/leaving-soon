@@ -291,3 +291,32 @@ Cloudflare Pages serves the built client cheaply, Render Free can host the exist
 ### Impact
 
 The client must know the deployed API base URL, and the server must be configured with Supabase and cleanup secrets in production. Render Free may spin down or suspend under its free-tier rules, so cold starts are possible.
+
+---
+
+## ADR-010: Build the visitor cafe list from distinct active reports
+
+- Date: 2026-05-19
+- Status: accepted
+
+### Context
+
+The visitor experience needs to surface the cafes that currently have active reports, not just generic search results. The product also needs to treat multiple reports for the same cafe as one visible cafe entry.
+
+### Decision
+
+Add a dedicated `GET /api/cafes/active` endpoint that returns one entry per cafeId with active report counts and latest report time. Make the visitor page load this endpoint by default and show an empty state when no active reports exist.
+
+### Reason
+
+This keeps the visitor list aligned with real current activity, reduces duplicate cafes in the UI, and avoids mixing search results with active-report discovery.
+
+### Alternatives Considered
+
+- Keep the Naver search results as the default visitor list
+- Merge active-report discovery and search into one endpoint
+- Compute distinct cafes entirely in the client
+
+### Impact
+
+The server now exposes one more read API and the report store needs a list-all-active-cafes method. The client visitor screen now depends on active-report availability before rendering the default list.

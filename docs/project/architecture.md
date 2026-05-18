@@ -7,6 +7,7 @@ client  ->  server  ->  Naver Local Search API
 client  ->  server  ->  Gemini API
 client  ->  server  ->  Supabase Postgres report store
 client  ->  server  ->  Supabase Cron cleanup job
+client  ->  server  ->  active-cafe list API derived from current reports
 ```
 
 ## Client
@@ -69,16 +70,18 @@ Release1 uses a Fastify TypeScript API server:
 
 - `GET /api/health`
 - `GET /api/cafes/search?query=:query`
+- `GET /api/cafes/active`
 - `GET /api/cafes/:id/reports`
 - `POST /api/cafes/:id/reports`
 
 ## Cafe Search Flow
 
 1. User enters from `카페 갈래요` or `곧 나가요`.
-2. Client sends a search query to `GET /api/cafes/search`.
-3. Server calls Naver Local Search API with `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`.
-4. Server normalizes cafe-like local results and returns them to the client.
-5. If Naver credentials are not configured, the client uses sample cafe data.
+2. On visitor entry, client requests `GET /api/cafes/active` to show distinct cafes with current active reports.
+3. Client can still send a search query to `GET /api/cafes/search` for manual lookups.
+4. Server calls Naver Local Search API with `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET`.
+5. Server normalizes cafe-like local results and returns them to the client.
+6. If Naver credentials are not configured, the client uses sample cafe data for search fallback.
 
 ## Authentication/Authorization Flow
 
@@ -90,7 +93,8 @@ Release1 does not include authentication or authorization.
 2. Reporter submits leaving-soon details to the server.
 3. Server validates and stores the report in Supabase Postgres, or in memory when Supabase env vars are missing.
 4. Server generates a Gemini AI summary for active reports when possible.
-5. Visitor selects the same cafe and receives active reports plus a summary.
+5. Visitor opens the cafe list, which is built from distinct cafes with active reports.
+6. Visitor selects the same cafe and receives active reports plus a summary.
 
 ## External Integrations
 
