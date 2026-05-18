@@ -11,6 +11,16 @@ type ReportParams = {
   cafeId: string;
 };
 
+function normalizeCafeId(cafeId: string): string {
+  const naverIdMatch = /^naver-([^-]+)-([^-]+)/.exec(cafeId);
+
+  if (!naverIdMatch) {
+    return cafeId;
+  }
+
+  return `naver-${naverIdMatch[1]}-${naverIdMatch[2]}`;
+}
+
 export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: false,
@@ -60,7 +70,7 @@ export function buildApp(): FastifyInstance {
   });
 
   app.get<{ Params: ReportParams }>("/api/cafes/:cafeId/reports", async (request) => {
-    const cafeId = request.params.cafeId;
+    const cafeId = normalizeCafeId(request.params.cafeId);
     const activeReports = await reportStore.listActiveReports(cafeId);
 
     return {
@@ -72,7 +82,7 @@ export function buildApp(): FastifyInstance {
 
   app.post<{ Params: ReportParams; Body: unknown }>("/api/cafes/:cafeId/reports", async (request, reply) => {
     try {
-      const cafeId = request.params.cafeId;
+      const cafeId = normalizeCafeId(request.params.cafeId);
       const report = createSeatReport(cafeId, request.body as never);
       await reportStore.saveReport(report);
 
