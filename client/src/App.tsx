@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, Coffee, MapPin, Plug, Search, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, Clock3, Coffee, MapPin, Plug, Search, Sparkles, Users } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ type SeatReport = {
   crowdLevel: CrowdLevel;
   hasWaiting: boolean;
   note: string;
+  createdAt: string;
+  expiresAt: string;
 };
 
 type ReportResponse = {
@@ -87,6 +89,21 @@ function getSeatSpaceLabel(seatSpace: SeatSpace) {
   }
 
   return "보통 자리";
+}
+
+function getReportFreshnessLabel(reports: SeatReport[]) {
+  if (reports.length === 0) {
+    return "최근 제보 없음";
+  }
+
+  const oldestCreatedAt = Math.min(...reports.map((report) => new Date(report.createdAt).getTime()));
+
+  if (!Number.isFinite(oldestCreatedAt)) {
+    return "최근 제보 기준";
+  }
+
+  const minutes = Math.max(1, Math.ceil((Date.now() - oldestCreatedAt) / 60_000));
+  return `최근 ${minutes}분 내 제보 기준`;
 }
 
 async function fetchCafeReports(cafeId: string): Promise<ReportResponse> {
@@ -394,9 +411,21 @@ export default function App() {
               {mode === "visitor" && reportData ? (
                 <>
                   <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
-                    <div className="mb-1 flex items-center gap-2 text-sm font-black text-coffee-900">
-                      <Sparkles className="h-4 w-4 text-honey-600" />
-                      자리 요약
+                    <div className="mb-1 flex flex-wrap items-center gap-2 text-sm font-black text-coffee-900">
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-honey-600" />
+                        자리 요약
+                      </span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-stone-500">
+                        {getReportFreshnessLabel(reportData.reports)}
+                        <span
+                          aria-label="제보 기준 안내"
+                          className="inline-grid h-4 w-4 place-items-center rounded-full border border-honey-100 bg-white/70 text-stone-500"
+                          title="현재 유효한 제보 중 가장 오래된 등록 시각을 기준으로 계산합니다."
+                        >
+                          <CircleHelp className="h-3 w-3" />
+                        </span>
+                      </span>
                     </div>
                     <p className="text-sm leading-6 text-coffee-700">{reportData.summary.message}</p>
                   </div>

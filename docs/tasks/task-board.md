@@ -61,3 +61,4 @@
 | T-030 | Normalize legacy Naver cafe IDs at report routes | bugfix | P1 | DONE | Codex | `/server/src/app.ts`, `/server/test/app.test.ts` | Canonicalize old name-including Naver IDs on report save/load |
 | T-031 | Hide reporter form after successful report | refactor | P1 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Changed submit button text and show completion state after report submission |
 | T-032 | Push reporter success UI deployment candidate | infra | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Verified and pushed reporter success UI change; platform deployment record not yet observed |
+| T-033 | Add visitor summary freshness hint | refactor | P2 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Show how recent the summary reports are in visitor mode |
