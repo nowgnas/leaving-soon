@@ -60,4 +60,4 @@
 | T-029 | Remove cafe name from Naver cafe IDs | bugfix | P1 | DONE | Codex | `/server/src/naver.ts`, `/server/test/naver.test.ts` | Avoid Korean cafe names in URL/path/storage IDs for report lookup stability |
 | T-030 | Normalize legacy Naver cafe IDs at report routes | bugfix | P1 | DONE | Codex | `/server/src/app.ts`, `/server/test/app.test.ts` | Canonicalize old name-including Naver IDs on report save/load |
 | T-031 | Hide reporter form after successful report | refactor | P1 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Changed submit button text and show completion state after report submission |
-| T-032 | Push reporter success UI deployment candidate | infra | P1 | IN_PROGRESS | Codex | `/client`, `/docs/logs/2026-05.md` | Verify and push reporter success UI change for auto-deploy |
+| T-032 | Push reporter success UI deployment candidate | infra | P1 | DONE | Codex | `/client`, `/docs/logs/2026-05.md` | Verified and pushed reporter success UI change; platform deployment record not yet observed |
