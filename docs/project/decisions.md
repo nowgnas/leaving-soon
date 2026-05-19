@@ -378,3 +378,32 @@ This keeps the cache simple and safe. A successful report submission is the stro
 ### Impact
 
 The client can still reuse recent cafe lookups, but a new report immediately forces a fresh read for the affected cafe. That reduces stale detail risk without giving up the performance benefit of the cache.
+
+---
+
+## ADR-013: Gate reporter submissions behind a 100m browser geolocation check
+
+- Date: 2026-05-19
+- Status: accepted
+
+### Context
+
+Reporter submissions need to be limited to people physically near the cafe. The client already receives cafe coordinates from search results, so the app can verify distance in the browser before allowing submission.
+
+### Decision
+
+Require the client to verify browser geolocation against the selected cafe coordinates and only allow submission when the user is within 100 meters.
+
+### Reason
+
+This matches the product goal of location-based reporting while keeping the first implementation simple. The browser can check the user position immediately without changing the server API contract.
+
+### Alternatives Considered
+
+- Verify location only after submit
+- Send raw GPS coordinates to the server for validation
+- Skip location enforcement until a later release
+
+### Impact
+
+The reporter flow now depends on browser geolocation support and cafe coordinates from search results. Users must confirm proximity before the submit button becomes active, and sample cafe data needs approximate coordinates for the local fallback flow.

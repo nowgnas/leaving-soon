@@ -21,6 +21,7 @@ Responsibilities:
 - API request handling
 - Client-side state management
 - Cafe place search through the server-side Naver Local Search API proxy
+- Browser geolocation checks for reporter submissions within a 100m cafe radius
 
 The client must not contain backend business logic.
 
@@ -110,6 +111,7 @@ Release1 does not include authentication or authorization.
 - Naver place search requires `NAVER_CLIENT_ID` and `NAVER_CLIENT_SECRET` on the server.
 - Gemini summaries require `GEMINI_API_KEY` on the server.
 - Supabase persistence requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` on the server.
+- Reporter submissions require browser geolocation support so the client can verify the user is within 100m of the selected cafe.
 - Cleanup endpoints use `CLEANUP_SECRET` when configured.
 - Local Naver credentials should be stored in `/server/.env`, which is excluded from git.
 - Client and server require dependency installation and build steps.

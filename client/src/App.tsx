@@ -24,6 +24,8 @@ type Cafe = {
   category?: string;
   activeCount?: number;
   latestCreatedAt?: string;
+  x?: string;
+  y?: string;
 };
 
 type ActiveCafeSummary = {
@@ -73,6 +75,14 @@ type ReportFormErrors = {
   leavingInMinutes?: string;
   seatCount?: string;
   note?: string;
+  location?: string;
+};
+
+type LocationVerification = {
+  status: "idle" | "checking" | "allowed" | "blocked" | "unsupported" | "unavailable";
+  message: string;
+  distanceMeters?: number;
+  cafeId?: string;
 };
 
 const fallbackCafes: Cafe[] = [
@@ -82,6 +92,8 @@ const fallbackCafes: Cafe[] = [
     address_name: "서울 성동구 성수동",
     road_address_name: "서울 성동구 연무장길 10",
     phone: "02-000-0001",
+    x: "1270530000",
+    y: "375430000",
   },
   {
     id: "sample-hapjeong-1",
@@ -89,6 +101,8 @@ const fallbackCafes: Cafe[] = [
     address_name: "서울 마포구 합정동",
     road_address_name: "서울 마포구 독막로 22",
     phone: "02-000-0002",
+    x: "1269140000",
+    y: "375500000",
   },
   {
     id: "sample-gangnam-1",
@@ -96,11 +110,42 @@ const fallbackCafes: Cafe[] = [
     address_name: "서울 강남구 역삼동",
     road_address_name: "서울 강남구 테헤란로 101",
     phone: "02-000-0003",
+    x: "1270270000",
+    y: "374990000",
   },
 ];
 
 function getCafeAddress(cafe: Cafe) {
   return cafe.road_address_name || cafe.address_name || "주소 정보 없음";
+}
+
+function getCafeCoordinates(cafe: Cafe) {
+  const longitude = Number(cafe.x);
+  const latitude = Number(cafe.y);
+
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+    return null;
+  }
+
+  return {
+    latitude: latitude / 10_000_000,
+    longitude: longitude / 10_000_000,
+  };
+}
+
+function calculateDistanceMeters(left: { latitude: number; longitude: number }, right: { latitude: number; longitude: number }) {
+  const earthRadiusMeters = 6_371_000;
+  const latitudeDelta = ((right.latitude - left.latitude) * Math.PI) / 180;
+  const longitudeDelta = ((right.longitude - left.longitude) * Math.PI) / 180;
+  const originLatitude = (left.latitude * Math.PI) / 180;
+  const targetLatitude = (right.latitude * Math.PI) / 180;
+
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(originLatitude) * Math.cos(targetLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusMeters * c;
 }
 
 function getSeatSpaceLabel(seatSpace: SeatSpace) {
@@ -169,6 +214,7 @@ async function fetchActiveCafes(): Promise<Cafe[]> {
 }
 
 const REPORT_CACHE_TTL_MS = 10 * 60 * 1000;
+const REPORT_LOCATION_RADIUS_METERS = 100;
 const reportCache = new Map<string, CachedReportEntry>();
 
 function getCachedReport(cafeId: string, now = Date.now()) {
@@ -252,12 +298,17 @@ export default function App() {
   const [seatSpace, setSeatSpace] = useState<SeatSpace>("normal");
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("normal");
   const [reportErrors, setReportErrors] = useState<ReportFormErrors>({});
+  const [locationVerification, setLocationVerification] = useState<LocationVerification>({
+    status: "idle",
+    message: "카페 반경 100m 안에서만 등록할 수 있습니다.",
+  });
   const [hasSubmittedReport, setHasSubmittedReport] = useState(false);
 
   const title = mode === "reporter" ? "내 자리 제보하기" : "갈 카페 찾기";
   const modeLabel = mode === "reporter" ? "곧 나가요" : "카페 갈래요";
   const listTitle = mode === "reporter" ? "조회된 카페 목록" : "현재 제보된 카페";
   const listSubtitle = mode === "reporter" ? "검색한 카페만 보여줍니다." : "지금 제보가 등록된 카페만 보여줍니다.";
+  const locationFormLocked = locationVerification.status === "blocked";
 
   const selectedAddress = useMemo(() => {
     return selectedCafe ? getCafeAddress(selectedCafe) : "";
@@ -276,6 +327,10 @@ export default function App() {
       setListMode,
     });
     setReportErrors({});
+    setLocationVerification({
+      status: "idle",
+      message: "카페 반경 100m 안에서만 등록할 수 있습니다.",
+    });
 
     if (mode !== "visitor") {
       return;
@@ -299,10 +354,96 @@ export default function App() {
     void loadActiveCafeList();
   }, [mode]);
 
+  useEffect(() => {
+    if (mode !== "reporter" || !selectedCafe) {
+      return;
+    }
+
+    setLocationVerification({
+      status: "idle",
+      message: "카페 반경 100m 안에서만 등록할 수 있습니다.",
+    });
+  }, [mode, selectedCafe?.id]);
+
+  async function verifyCurrentLocation(cafe = selectedCafe) {
+    if (!cafe) {
+      return;
+    }
+
+    setReportErrors((current) => ({ ...current, location: undefined }));
+    const cafeCoordinates = getCafeCoordinates(cafe);
+
+    if (!cafeCoordinates) {
+      setLocationVerification({
+        status: "unavailable",
+        cafeId: cafe.id,
+        message: "카페 위치 좌표를 확인할 수 없어 등록할 수 없습니다.",
+      });
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationVerification({
+        status: "unsupported",
+        cafeId: cafe.id,
+        message: "이 브라우저에서는 위치 확인을 사용할 수 없습니다.",
+      });
+      return;
+    }
+
+    setLocationVerification({
+      status: "checking",
+      cafeId: cafe.id,
+      message: "현재 위치를 확인하는 중입니다.",
+    });
+
+    try {
+      const currentPosition = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10_000,
+          maximumAge: 30_000,
+        });
+      });
+
+      const currentCoordinates = {
+        latitude: currentPosition.coords.latitude,
+        longitude: currentPosition.coords.longitude,
+      };
+
+      const distanceMeters = calculateDistanceMeters(currentCoordinates, cafeCoordinates);
+
+      if (distanceMeters > REPORT_LOCATION_RADIUS_METERS) {
+        setLocationVerification({
+          status: "blocked",
+          cafeId: cafe.id,
+          distanceMeters,
+          message: `현재 위치가 카페 반경 ${Math.round(distanceMeters)}m 밖입니다. 카페 근처에서 다시 확인해 주세요.`,
+        });
+        return;
+      }
+
+      setLocationVerification({
+        status: "allowed",
+        cafeId: cafe.id,
+        distanceMeters,
+        message: `현재 위치가 카페 반경 ${Math.max(1, Math.round(distanceMeters))}m 안입니다.`,
+      });
+    } catch (error) {
+      const geolocationError = error as { code?: number } | null;
+      setLocationVerification({
+        status: "blocked",
+        cafeId: cafe.id,
+        message: geolocationError?.code === 1 ? "위치 권한이 거부되어 등록할 수 없습니다." : "현재 위치를 확인할 수 없어 등록할 수 없습니다.",
+      });
+    }
+  }
+
   async function selectCafe(cafe: Cafe) {
     setSelectedCafe(cafe);
     setMessage("");
     setHasSubmittedReport(false);
+    setReportErrors({});
     if (mode === "visitor") {
       const cachedReport = getCachedReport(cafe.id);
       if (cachedReport) {
@@ -322,6 +463,14 @@ export default function App() {
     }
 
     setReportData(null);
+    setLocationVerification({
+      status: "idle",
+      message: "카페 반경 100m 안에서만 등록할 수 있습니다.",
+    });
+
+    if (mode === "reporter") {
+      void verifyCurrentLocation(cafe);
+    }
   }
 
   async function searchCafes() {
@@ -329,6 +478,10 @@ export default function App() {
     setIsSearching(true);
     setSearchMessage("");
     setMessage("");
+    setLocationVerification({
+      status: "idle",
+      message: "카페 반경 100m 안에서만 등록할 수 있습니다.",
+    });
 
     try {
       const results = await fetchCafeSearch(searchKeyword);
@@ -371,6 +524,15 @@ export default function App() {
       return;
     }
 
+    if (locationFormLocked || locationVerification.status !== "allowed" || locationVerification.cafeId !== selectedCafe.id) {
+      setReportErrors((current) => ({
+        ...current,
+        location: "먼저 현재 위치를 확인해 주세요.",
+      }));
+      setMessage("카페 반경 100m 안에서만 등록할 수 있습니다.");
+      return;
+    }
+
     const form = event.currentTarget;
     const formData = new FormData(event.currentTarget);
     const validationErrors = validateReportForm(formData);
@@ -407,6 +569,10 @@ export default function App() {
     form.reset();
     evictCachedReport(selectedCafe.id);
     setReportErrors({});
+    setLocationVerification({
+      status: "idle",
+      message: "카페 반경 100m 안에서만 등록할 수 있습니다.",
+    });
     setSeatSpace("normal");
     setCrowdLevel("normal");
     setHasSubmittedReport(true);
@@ -657,10 +823,48 @@ export default function App() {
                   <form className="grid gap-4" onSubmit={submitReport}>
                     <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
                       <p className="text-sm font-black text-coffee-900">등록할 제보를 입력하세요</p>
-                      <p className="mt-1 text-xs leading-5 text-stone-500">정확한 좌석 번호보다, 몇 분 뒤 어떤 자리가 비는지가 더 중요합니다.</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">
+                        위치 확인을 먼저 통과해야 등록할 수 있습니다. 카페 반경 {REPORT_LOCATION_RADIUS_METERS}m 안에서만 가능합니다.
+                      </p>
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div
+                      className={`grid gap-3 rounded-lg border px-4 py-3 ${
+                        locationVerification.status === "allowed"
+                          ? "border-forest-200 bg-forest-50"
+                          : locationVerification.status === "blocked" || locationVerification.status === "unavailable" || locationVerification.status === "unsupported"
+                            ? "border-destructive/25 bg-destructive/5"
+                            : "border-paper-100 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="grid gap-1">
+                          <p className="text-sm font-black text-coffee-900">위치 확인</p>
+                      <p className="text-xs leading-5 text-stone-500">
+                        카페 위치 기준으로 반경 {REPORT_LOCATION_RADIUS_METERS}m 안에 있어야 합니다.
+                      </p>
+                    </div>
+                  </div>
+                  <p
+                    className={`text-sm leading-6 ${
+                      locationVerification.status === "allowed"
+                        ? "text-forest-700"
+                            : locationVerification.status === "blocked" ||
+                                locationVerification.status === "unavailable" ||
+                                locationVerification.status === "unsupported"
+                              ? "text-destructive"
+                              : "text-stone-500"
+                        }`}
+                      >
+                        {locationVerification.message}
+                      </p>
+                      {typeof locationVerification.distanceMeters === "number" ? (
+                        <p className="text-xs text-stone-500">{Math.round(locationVerification.distanceMeters)}m</p>
+                      ) : null}
+                      {reportErrors.location ? <p className="text-xs text-destructive">{reportErrors.location}</p> : null}
+                    </div>
+
+                    <fieldset className="grid gap-3 sm:grid-cols-2" disabled={locationFormLocked}>
                       <div className="grid gap-1.5">
                         <Label htmlFor="leavingInMinutes">몇 분 뒤 나가나요?</Label>
                         <Input
@@ -758,14 +962,14 @@ export default function App() {
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
+                    </fieldset>
 
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
+                      <Label className={`flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm ${locationFormLocked ? "opacity-60" : ""}`}>
                         <input name="hasOutlet" type="checkbox" />
                         콘센트 있음
                       </Label>
-                      <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
+                      <Label className={`flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm ${locationFormLocked ? "opacity-60" : ""}`}>
                         <input name="hasWaiting" type="checkbox" />
                         웨이팅 있음
                       </Label>
@@ -780,6 +984,7 @@ export default function App() {
                         name="note"
                         maxLength={160}
                         placeholder="예: 창가 2인석, 의자가 편해요"
+                        disabled={locationFormLocked}
                         onChange={() => {
                           if (reportErrors.note) {
                             setReportErrors((current) => ({ ...current, note: undefined }));
@@ -789,7 +994,13 @@ export default function App() {
                       {reportErrors.note ? <p className="text-xs text-destructive">{reportErrors.note}</p> : <p className="text-xs text-stone-500">메모는 최대 160자입니다.</p>}
                     </div>
 
-                    <Button className="h-12 bg-coffee-900 text-white hover:bg-coffee-700" type="submit">곧 나가요</Button>
+                    <Button
+                      className="h-12 bg-coffee-900 text-white hover:bg-coffee-700"
+                      type="submit"
+                      disabled={locationVerification.status !== "allowed" || locationVerification.cafeId !== selectedCafe.id}
+                    >
+                      곧 나가요
+                    </Button>
                   </form>
                 )
               ) : null}
