@@ -320,3 +320,61 @@ This keeps the visitor list aligned with real current activity, reduces duplicat
 ### Impact
 
 The server now exposes one more read API and the report store needs a list-all-active-cafes method. The client visitor screen now depends on active-report availability before rendering the default list.
+
+---
+
+## ADR-011: Reset page state on entry and cache visitor report details for 10 minutes
+
+- Date: 2026-05-19
+- Status: accepted
+
+### Context
+
+The app keeps multiple visitor and reporter flows in a single-page shell. Without explicit resets, stale cafe lists and selected cafe state can bleed across page entries. The visitor flow also benefits from a short-lived cache when the same cafe is clicked repeatedly.
+
+### Decision
+
+Reset cafe lists, selected cafe state, and transient messages each time a user enters a page mode. Cache `GET /api/cafes/:cafeId/reports` responses in the client for up to 10 minutes by `cafeId`.
+
+### Reason
+
+This keeps page transitions predictable and avoids showing stale search or selection state. A short-lived client cache reduces repeated fetches when the user revisits the same cafe, while still refreshing data frequently enough for a time-sensitive report product.
+
+### Alternatives Considered
+
+- Keep state across page entries
+- Put the cache on the server
+- Cache search results instead of cafe report details
+
+### Impact
+
+The visitor and reporter views now feel like separate entry states even inside one SPA. Repeated cafe clicks can reuse recent data for up to 10 minutes, which reduces server traffic and UI latency without changing the API contract.
+
+---
+
+## ADR-012: Evict cached cafe report details when a new report is submitted
+
+- Date: 2026-05-19
+- Status: accepted
+
+### Context
+
+The client caches visitor report responses by `cafeId` to avoid repeated fetches. That cache should not outlive a newer report submission for the same cafe.
+
+### Decision
+
+When a `곧 나가요` submission succeeds for a cafe, evict the cached report response for that same `cafeId`. The next cafe lookup must re-fetch from the server.
+
+### Reason
+
+This keeps the cache simple and safe. A successful report submission is the strongest signal that cached cafe detail data is stale.
+
+### Alternatives Considered
+
+- Invalidate the whole cache on every submit
+- Keep the cached response and wait for TTL expiry
+- Store cache metadata in the server instead of the client
+
+### Impact
+
+The client can still reuse recent cafe lookups, but a new report immediately forces a fresh read for the affected cafe. That reduces stale detail risk without giving up the performance benefit of the cache.

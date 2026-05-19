@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, Clock3, Coffee, MapPin, Plug, Search, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, Clock3, Coffee, MapPin, Maximize2, Minimize2, Plug, Search, Sparkles, Square, Users } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,17 @@ type ReportResponse = {
 
 type ActiveCafeResponse = {
   cafes: ActiveCafeSummary[];
+};
+
+type CachedReportEntry = {
+  data: ReportResponse;
+  cachedAt: number;
+};
+
+type ReportFormErrors = {
+  leavingInMinutes?: string;
+  seatCount?: string;
+  note?: string;
 };
 
 const fallbackCafes: Cafe[] = [
@@ -157,6 +168,75 @@ async function fetchActiveCafes(): Promise<Cafe[]> {
   }));
 }
 
+const REPORT_CACHE_TTL_MS = 10 * 60 * 1000;
+const reportCache = new Map<string, CachedReportEntry>();
+
+function getCachedReport(cafeId: string, now = Date.now()) {
+  const cached = reportCache.get(cafeId);
+
+  if (!cached) {
+    return null;
+  }
+
+  if (now - cached.cachedAt > REPORT_CACHE_TTL_MS) {
+    reportCache.delete(cafeId);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedReport(cafeId: string, data: ReportResponse, now = Date.now()) {
+  reportCache.set(cafeId, { data, cachedAt: now });
+}
+
+function evictCachedReport(cafeId: string) {
+  reportCache.delete(cafeId);
+}
+
+function resetPageState(setters: {
+  setKeyword: (value: string) => void;
+  setCafes: (value: Cafe[]) => void;
+  setSelectedCafe: (value: Cafe | null) => void;
+  setReportData: (value: ReportResponse | null) => void;
+  setMessage: (value: string) => void;
+  setSearchMessage: (value: string) => void;
+  setListMessage: (value: string) => void;
+  setHasSubmittedReport: (value: boolean) => void;
+  setListMode: (value: "active" | "search") => void;
+}) {
+  setters.setKeyword("");
+  setters.setCafes([]);
+  setters.setSelectedCafe(null);
+  setters.setReportData(null);
+  setters.setMessage("");
+  setters.setSearchMessage("");
+  setters.setListMessage("");
+  setters.setHasSubmittedReport(false);
+  setters.setListMode("active");
+}
+
+function validateReportForm(formData: FormData): ReportFormErrors {
+  const errors: ReportFormErrors = {};
+  const leavingInMinutesValue = Number.parseInt(String(formData.get("leavingInMinutes") ?? ""), 10);
+  const seatCountValue = Number.parseInt(String(formData.get("seatCount") ?? ""), 10);
+  const noteValue = String(formData.get("note") ?? "");
+
+  if (!Number.isInteger(leavingInMinutesValue) || leavingInMinutesValue < 1 || leavingInMinutesValue > 180) {
+    errors.leavingInMinutes = "1~180분 사이 숫자로 입력해 주세요.";
+  }
+
+  if (!Number.isInteger(seatCountValue) || seatCountValue < 1 || seatCountValue > 8) {
+    errors.seatCount = "1~8인석 사이 숫자로 입력해 주세요.";
+  }
+
+  if (noteValue.length > 160) {
+    errors.note = "메모는 160자 이내로 줄여 주세요.";
+  }
+
+  return errors;
+}
+
 export default function App() {
   const [mode, setMode] = useState<Mode>("landing");
   const [keyword, setKeyword] = useState("");
@@ -166,42 +246,50 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [searchMessage, setSearchMessage] = useState("");
   const [listMessage, setListMessage] = useState("");
+  const [listMode, setListMode] = useState<"active" | "search">("active");
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingActiveCafes, setIsLoadingActiveCafes] = useState(false);
   const [seatSpace, setSeatSpace] = useState<SeatSpace>("normal");
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("normal");
+  const [reportErrors, setReportErrors] = useState<ReportFormErrors>({});
   const [hasSubmittedReport, setHasSubmittedReport] = useState(false);
 
   const title = mode === "reporter" ? "내 자리 제보하기" : "갈 카페 찾기";
   const modeLabel = mode === "reporter" ? "곧 나가요" : "카페 갈래요";
+  const listTitle = mode === "reporter" ? "조회된 카페 목록" : "현재 제보된 카페";
+  const listSubtitle = mode === "reporter" ? "검색한 카페만 보여줍니다." : "지금 제보가 등록된 카페만 보여줍니다.";
 
   const selectedAddress = useMemo(() => {
     return selectedCafe ? getCafeAddress(selectedCafe) : "";
   }, [selectedCafe]);
 
   useEffect(() => {
+    resetPageState({
+      setKeyword,
+      setCafes,
+      setSelectedCafe,
+      setReportData,
+      setMessage,
+      setSearchMessage,
+      setListMessage,
+      setHasSubmittedReport,
+      setListMode,
+    });
+    setReportErrors({});
+
     if (mode !== "visitor") {
       return;
     }
 
     async function loadActiveCafeList() {
       setIsLoadingActiveCafes(true);
-      setListMessage("");
-      setSearchMessage("");
-      setMessage("");
 
       try {
         const activeCafes = await fetchActiveCafes();
         setCafes(activeCafes);
-        setSelectedCafe(null);
-        setReportData(null);
-        setHasSubmittedReport(false);
         setListMessage(activeCafes.length === 0 ? "등록된 제보가 없어요." : "");
       } catch (error) {
         setCafes([]);
-        setSelectedCafe(null);
-        setReportData(null);
-        setHasSubmittedReport(false);
         setListMessage(error instanceof Error ? error.message : "현재 제보된 카페를 불러오지 못했습니다.");
       } finally {
         setIsLoadingActiveCafes(false);
@@ -216,8 +304,16 @@ export default function App() {
     setMessage("");
     setHasSubmittedReport(false);
     if (mode === "visitor") {
+      const cachedReport = getCachedReport(cafe.id);
+      if (cachedReport) {
+        setReportData(cachedReport);
+        return;
+      }
+
       try {
-        setReportData(await fetchCafeReports(cafe.id));
+        const response = await fetchCafeReports(cafe.id);
+        setReportData(response);
+        setCachedReport(cafe.id, response);
       } catch (error) {
         setReportData(null);
         setMessage(error instanceof Error ? error.message : "제보를 불러오지 못했습니다.");
@@ -236,27 +332,33 @@ export default function App() {
 
     try {
       const results = await fetchCafeSearch(searchKeyword);
-      setCafes(results.length > 0 ? results : fallbackCafes);
+      setListMode("search");
+      setCafes(mode === "visitor" ? results : results.length > 0 ? results : []);
       setSelectedCafe(null);
       setReportData(null);
       setHasSubmittedReport(false);
-      setListMessage("");
-      setSearchMessage(results.length > 0 ? `${results.length}곳을 찾았습니다.` : "검색 결과가 없어 샘플 카페를 보여줍니다.");
+      setListMessage(results.length === 0 ? "검색 결과가 없습니다." : "");
+      setSearchMessage(results.length > 0 ? `${results.length}곳을 찾았습니다.` : "검색 결과가 없습니다.");
     } catch (error) {
-      const filtered = fallbackCafes.filter((cafe) => {
-        return (
-          searchKeyword === "카페" ||
-          cafe.place_name.includes(searchKeyword) ||
-          (cafe.address_name ?? "").includes(searchKeyword) ||
-          (cafe.road_address_name ?? "").includes(searchKeyword)
-        );
-      });
-      setCafes(filtered.length > 0 ? filtered : fallbackCafes);
+      setListMode("search");
+      if (mode === "visitor") {
+        setCafes([]);
+      } else {
+        const filtered = fallbackCafes.filter((cafe) => {
+          return (
+            searchKeyword === "카페" ||
+            cafe.place_name.includes(searchKeyword) ||
+            (cafe.address_name ?? "").includes(searchKeyword) ||
+            (cafe.road_address_name ?? "").includes(searchKeyword)
+          );
+        });
+        setCafes(filtered.length > 0 ? filtered : []);
+      }
+      setListMessage(error instanceof Error ? error.message : "카페 검색 결과를 불러오지 못했습니다.");
       setSelectedCafe(null);
       setReportData(null);
       setHasSubmittedReport(false);
-      setListMessage("");
-      setSearchMessage(error instanceof Error ? error.message : "네이버 카페 검색을 사용할 수 없어 샘플 카페를 보여줍니다.");
+      setSearchMessage(error instanceof Error ? error.message : "카페 검색 결과를 불러오지 못했습니다.");
     } finally {
       setIsSearching(false);
     }
@@ -269,7 +371,16 @@ export default function App() {
       return;
     }
 
+    const form = event.currentTarget;
     const formData = new FormData(event.currentTarget);
+    const validationErrors = validateReportForm(formData);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setReportErrors(validationErrors);
+      setMessage("입력값을 확인해 주세요.");
+      return;
+    }
+
     const response = await fetch(`${API_BASE}/api/cafes/${encodeURIComponent(selectedCafe.id)}/reports`, {
       method: "POST",
       headers: {
@@ -293,11 +404,13 @@ export default function App() {
       return;
     }
 
-    event.currentTarget.reset();
+    form.reset();
+    evictCachedReport(selectedCafe.id);
+    setReportErrors({});
     setSeatSpace("normal");
     setCrowdLevel("normal");
     setHasSubmittedReport(true);
-    setMessage("곧 나가요가 등록되었습니다.");
+    setMessage("등록 되었습니다.");
   }
 
   if (mode === "landing") {
@@ -419,14 +532,17 @@ export default function App() {
         <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
           <section className="rounded-lg border border-paper-100 bg-white/85 shadow-sm">
             <div className="flex items-center justify-between border-b border-paper-100 px-4 py-3">
-              <h3 className="text-base font-black text-coffee-900">현재 제보된 카페</h3>
+              <div>
+                <h3 className="text-base font-black text-coffee-900">{listTitle}</h3>
+                <p className="text-xs text-stone-500">{listSubtitle}</p>
+              </div>
               <Badge className="bg-coffee-900 text-white hover:bg-coffee-900">{cafes.length}곳</Badge>
             </div>
             <div className="grid gap-2 p-3 lg:max-h-[calc(100dvh-16rem)] lg:overflow-auto">
               {isLoadingActiveCafes ? (
                 <p className="px-1 py-6 text-center text-sm text-stone-500">현재 제보된 카페를 불러오는 중입니다.</p>
               ) : cafes.length === 0 ? (
-                <p className="px-1 py-6 text-center text-sm text-stone-500">{listMessage || "등록된 제보가 없어요."}</p>
+                <p className="px-1 py-6 text-center text-sm text-stone-500">{listMessage || (listMode === "search" ? "검색 결과가 없습니다." : "등록된 제보가 없어요.")}</p>
               ) : (
                 cafes.map((cafe) => (
                   <button
@@ -525,80 +641,157 @@ export default function App() {
                 </>
               ) : null}
 
-              {mode === "reporter" && selectedCafe && hasSubmittedReport ? (
-                <div className="rounded-lg border border-forest-100 bg-forest-50 px-4 py-4">
-                  <div className="flex items-center gap-2 text-sm font-black text-forest-700">
-                    <CheckCircle2 className="h-4 w-4" />
-                    곧 나가요가 등록되었습니다.
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-stone-500">
-                    자리 제보가 저장되었습니다. 다른 사람이 이 카페를 조회할 때 최근 제보로 표시됩니다.
-                  </p>
-                </div>
-              ) : null}
-
-              {mode === "reporter" && selectedCafe && !hasSubmittedReport ? (
-                <form className="grid gap-4" onSubmit={submitReport}>
-                  <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
-                    <p className="text-sm font-black text-coffee-900">자리 상태를 알려주세요</p>
-                    <p className="mt-1 text-xs leading-5 text-stone-500">정확한 좌석 번호보다, 몇 분 뒤 어떤 자리가 비는지가 더 중요합니다.</p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="leavingInMinutes">몇 분 뒤 나가나요?</Label>
-                      <Input className="h-11 bg-white" id="leavingInMinutes" name="leavingInMinutes" type="number" min={1} max={180} defaultValue={20} required />
+              {mode === "reporter" && selectedCafe ? (
+                hasSubmittedReport ? (
+                  <div className="rounded-lg border border-forest-100 bg-forest-50 px-4 py-4">
+                    <div className="flex items-center gap-2 text-sm font-black text-forest-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      등록 되었습니다
                     </div>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="seatCount">몇 인석인가요?</Label>
-                      <Input className="h-11 bg-white" id="seatCount" name="seatCount" type="number" min={1} max={8} defaultValue={2} required />
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label>자리 넓이</Label>
-                      <Select value={seatSpace} onValueChange={(value) => setSeatSpace(value as SeatSpace)}>
-                        <SelectTrigger className="h-11 bg-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="wide">넓음</SelectItem>
-                          <SelectItem value="normal">보통</SelectItem>
-                          <SelectItem value="narrow">좁음</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label>현재 분위기</Label>
-                      <Select value={crowdLevel} onValueChange={(value) => setCrowdLevel(value as CrowdLevel)}>
-                        <SelectTrigger className="h-11 bg-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="relaxed">여유</SelectItem>
-                          <SelectItem value="normal">보통</SelectItem>
-                          <SelectItem value="busy">혼잡</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <h4 className="mt-2 text-xl font-black text-coffee-900">{selectedCafe.place_name}</h4>
+                    <p className="mt-2 text-sm leading-6 text-stone-500">
+                      입력한 곧 나가요가 저장되었습니다. 다른 사람이 이 카페를 조회할 때 최근 제보로 표시됩니다.
+                    </p>
                   </div>
+                ) : (
+                  <form className="grid gap-4" onSubmit={submitReport}>
+                    <div className="rounded-lg border border-honey-100 bg-honey-50 px-4 py-3">
+                      <p className="text-sm font-black text-coffee-900">등록할 제보를 입력하세요</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-500">정확한 좌석 번호보다, 몇 분 뒤 어떤 자리가 비는지가 더 중요합니다.</p>
+                    </div>
 
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
-                      <input name="hasOutlet" type="checkbox" />
-                      콘센트 있음
-                    </Label>
-                    <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
-                      <input name="hasWaiting" type="checkbox" />
-                      웨이팅 있음
-                    </Label>
-                  </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="leavingInMinutes">몇 분 뒤 나가나요?</Label>
+                        <Input
+                          aria-invalid={Boolean(reportErrors.leavingInMinutes)}
+                          className={`h-11 bg-white ${reportErrors.leavingInMinutes ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                          id="leavingInMinutes"
+                          name="leavingInMinutes"
+                          type="number"
+                          min={1}
+                          max={180}
+                          defaultValue={20}
+                          required
+                          onChange={() => {
+                            if (reportErrors.leavingInMinutes) {
+                              setReportErrors((current) => ({ ...current, leavingInMinutes: undefined }));
+                            }
+                          }}
+                        />
+                        {reportErrors.leavingInMinutes ? <p className="text-xs text-destructive">{reportErrors.leavingInMinutes}</p> : null}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label htmlFor="seatCount">몇 인석인가요?</Label>
+                        <Input
+                          aria-invalid={Boolean(reportErrors.seatCount)}
+                          className={`h-11 bg-white ${reportErrors.seatCount ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                          id="seatCount"
+                          name="seatCount"
+                          type="number"
+                          min={1}
+                          max={8}
+                          defaultValue={2}
+                          required
+                          onChange={() => {
+                            if (reportErrors.seatCount) {
+                              setReportErrors((current) => ({ ...current, seatCount: undefined }));
+                            }
+                          }}
+                        />
+                        {reportErrors.seatCount ? <p className="text-xs text-destructive">{reportErrors.seatCount}</p> : null}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>자리 넓이</Label>
+                        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="자리 넓이 선택">
+                          <button
+                            type="button"
+                            aria-pressed={seatSpace === "wide"}
+                            className={`flex h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
+                              seatSpace === "wide"
+                                ? "border-forest-600 bg-forest-50 text-forest-700 shadow-sm"
+                                : "border-paper-100 bg-white text-coffee-900 hover:border-forest-200 hover:bg-paper-50"
+                            }`}
+                            onClick={() => setSeatSpace("wide")}
+                          >
+                            <Maximize2 className="h-4 w-4" />
+                            넓음
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={seatSpace === "normal"}
+                            className={`flex h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
+                              seatSpace === "normal"
+                                ? "border-forest-600 bg-forest-50 text-forest-700 shadow-sm"
+                                : "border-paper-100 bg-white text-coffee-900 hover:border-forest-200 hover:bg-paper-50"
+                            }`}
+                            onClick={() => setSeatSpace("normal")}
+                          >
+                            <Square className="h-4 w-4" />
+                            보통
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={seatSpace === "narrow"}
+                            className={`flex h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
+                              seatSpace === "narrow"
+                                ? "border-forest-600 bg-forest-50 text-forest-700 shadow-sm"
+                                : "border-paper-100 bg-white text-coffee-900 hover:border-forest-200 hover:bg-paper-50"
+                            }`}
+                            onClick={() => setSeatSpace("narrow")}
+                          >
+                            <Minimize2 className="h-4 w-4" />
+                            좁음
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid gap-1.5">
+                        <Label>현재 분위기</Label>
+                        <Select value={crowdLevel} onValueChange={(value) => setCrowdLevel(value as CrowdLevel)}>
+                          <SelectTrigger className="h-11 bg-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="relaxed">여유</SelectItem>
+                            <SelectItem value="normal">보통</SelectItem>
+                            <SelectItem value="busy">혼잡</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="note">추가 메모</Label>
-                    <Textarea className="min-h-24 bg-white" id="note" name="note" maxLength={160} placeholder="예: 창가 2인석, 의자가 편해요" />
-                  </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
+                        <input name="hasOutlet" type="checkbox" />
+                        콘센트 있음
+                      </Label>
+                      <Label className="flex min-h-11 items-center gap-2 rounded-lg border border-paper-100 bg-white px-3 text-sm">
+                        <input name="hasWaiting" type="checkbox" />
+                        웨이팅 있음
+                      </Label>
+                    </div>
 
-                  <Button className="h-12 bg-coffee-900 text-white hover:bg-coffee-700" type="submit">곧 나가요</Button>
-                </form>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="note">추가 메모</Label>
+                      <Textarea
+                        aria-invalid={Boolean(reportErrors.note)}
+                        className={`min-h-24 bg-white ${reportErrors.note ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                        id="note"
+                        name="note"
+                        maxLength={160}
+                        placeholder="예: 창가 2인석, 의자가 편해요"
+                        onChange={() => {
+                          if (reportErrors.note) {
+                            setReportErrors((current) => ({ ...current, note: undefined }));
+                          }
+                        }}
+                      />
+                      {reportErrors.note ? <p className="text-xs text-destructive">{reportErrors.note}</p> : <p className="text-xs text-stone-500">메모는 최대 160자입니다.</p>}
+                    </div>
+
+                    <Button className="h-12 bg-coffee-900 text-white hover:bg-coffee-700" type="submit">곧 나가요</Button>
+                  </form>
+                )
               ) : null}
 
               {mode === "visitor" ? (
