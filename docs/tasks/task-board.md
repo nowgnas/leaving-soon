@@ -74,3 +74,4 @@
 | T-043 | Auto-run location check on cafe click | feature | P1 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Trigger the proximity check immediately when a cafe is selected in reporter mode |
 | T-044 | Remove manual location check controls | refactor | P2 | DONE | Codex | `/client/src/App.tsx`, `/docs/logs/2026-05.md` | Hide the manual location check button and status badge now that the proximity check runs automatically on cafe selection |
 | T-045 | Add Google Analytics tag | chore | P2 | DONE | Codex | `/client/index.html`, `/docs/logs/2026-05.md` | Inject the provided GA4 gtag snippet into the client HTML head |
+| T-046 | Improve client SEO metadata | chore | P2 | DONE | Codex | `/client/index.html`, `/docs/logs/2026-05.md` | Add search and social metadata for better indexing and sharing previews |
